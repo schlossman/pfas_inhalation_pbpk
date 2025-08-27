@@ -1,0 +1,36 @@
+---
+title: "R Markdown Capabilities"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Including Math
+
+In R Markdown you can use LaTeX notation for mathematical expressions inline $y=x_1+2*x_2$ or centered 
+$$z = \int_0^1 3x \, dx$$
+
+## Including Code
+
+You can also include code that you want to display to the reader:
+ 
+```{r}
+x <- seq(0,10,by=0.1)
+y <- 2*x+1
+z <- 0.5*(x-5)^2+5
+```
+
+The code is also run, so the variables $x$, $y$, and $z$ now exist and are assigned variables in this environment. 
+
+### Including Plots
+
+Or you can supress the call of the code and just display the outputs:
+
+```{r, echo=FALSE}
+plot(x,y,type = "l", col="red")
+lines(x,z, col = "blue")
+```
+
+

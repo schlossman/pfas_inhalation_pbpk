@@ -1,0 +1,50 @@
+---
+title: "How to Run the PBPK Model Template"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### To Run the Included Simulations
+
+These instructions allow you to run the simulations given in the included script files for simulations of dichloromethane, methanol, and chloroform.
+
+1.	Install R, RStudio, the R packages "deSolve" and "readxl", Rtools, and GNU MCSim on your system. Instructions can be found in "R_and_MCSim_installation_instructions.html".
+
+1.	Open RStudio.
+
+1.	Within RStudio, open the R source code file containing the desired simulations, e.g. "DCM_IRIS_scripts.R"
+
+1.	Use the "Source" button to load the included functions.
+
+1. If this is the first time using the template model, compile the template model by using the command `PBPK_compile()`. This command was loaded when sourcing the script file in step 4, and the function definition can be found in the file "run_template_model.R".
+
+1.	Each function in the simulation script can be called from the command line to create the named figure or table from the manuscript and perform the corresponding accuracy calculations. For example, to create Figure C-3 from the U.S. EPA IRIS report for DCM, use the command "DCM.IRIS.FigC3()". Figures will print to the figure pane in the lower right area of RStudio.
+
+### To Run Your Own Simulations Using the Model Template
+
+These instructions allow you to run simulations using your own scripts.
+
+1.	Install R, RStudio, the R packages "deSolve" and "readxl", Rtools, and GNU MCSim on your system. Instructions can be found in "R_and_MCSim_installation_instructions.html".
+
+1.	Open RStudio.
+
+1.  Open "run_template_model.R", set your working directory to the directory containing this file, and "Source" the file to load the included functions.
+
+1.  If this is the first time using the template model, compile the template model by using the command `PBPK_compile()`.
+
+1.  Create input spreadsheets for your desired PBPK model simulation using copies of the provided blank templates. These can be found in the "Inputs" folder and are titled "BLANK_template_parameters_Model.xlsx" and "BLANK_template_parameters_Exposure.xlsx". 
+
+1.  Run the desired simulation by calling the function PBPK_run:
+`PBPK_run(`
+` model.param.filename = "[Your model parameters spreadsheet filename]",`
+` model.param.sheetname = "[Your model parameters spreadsheet sheetname]",`
+` exposure.param.filename = "[Your exposure parameters spreadsheet sheetname]",`
+`exposure.param.sheetname = "[Your exposure parameters spreadsheet sheetname]")`
+
+1.  Output is provided in a data frame containing time-course data for all state and output variables included in the PBPK model template, and units are given in (mg, L, h).
+
+See the included scripts and input spreadsheets for examples of how to perform simulations using the template. Additional instructions and information can be found in the "Documentation" folder.

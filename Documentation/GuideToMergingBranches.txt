@@ -1,0 +1,20 @@
+Merging Branches in Git
+Example with the PBPK Template Code
+
+Setup: I am currently on the methanol branch. I have changes in my methanol branch that do not include recent changes someone else made and pushed to the remote master branch.
+
+1. I commit the changes I made on my local methanol branch and push those to the remote methanol branch. This push is so that I have a remote copy in case I screw up my local copy doing the merging.
+	a. git add . (adds the files)
+	b. git commit -m “[message]” (commits the files)
+	c. git push origin methanol (pushes to the remote methanol branch)
+
+2. I switch to the master branch and check to see if there were changes I did not yet have on the remote version.
+	a. git checkout master (switch to master)
+	b. git fetch origin (ask git what is on the remote version of master. note, if I check my git status now it tells me I am 3 commits behind the remote version.)
+
+3. I pull those changes into my local master branch and then merge in the changes I had made to my local methanol branch. Then I push the whole thing back to the remote master branch.
+	a. git pull origin (merge the current remote master into my local master so that I am up to date locally)
+	b. git merge methanol (merge my local changes to the methanol branch into the master branch)
+	c. git push origin master (push my changes to the remote master branch)
+
+Finished!

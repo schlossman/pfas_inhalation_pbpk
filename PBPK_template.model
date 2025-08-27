@@ -1,0 +1,897 @@
+#------------------------------------------------------------------------------
+# PBPK_template.model
+# Version 2024.06
+#
+# Template model that can be used to simulate the following models:
+#   Methanol from IRIS Tox Report (2013)
+#   DCM from IRIS Tox Report (2011)
+#   PFHxS from Kim et al. (2018)
+#   PFNA from Kim et al. (2019)
+#   PFDA from Kim et al. (2019)
+#   PFAS from Fabrega et al. (2015)
+#   PFOA/PFOS from Loccisano et al. (2012)
+#
+# This model includes:
+#   allows for rate constants, etc. to be adjusted with changing BW
+#   up to 5 generic tissue compartments with blood flow and partition coefficients
+#   liver compartment with blood flow from GI tract through it
+#   saturable filtration in kidney with filtrate and tissue compartments
+#   urinary excretion via filtrate/storage
+#   single blood/plasma compartment or separate venous and arterial compartments
+#   oral intake via GI lumen compartment
+#   fecal elimination from GI tissue compartment
+#   biliary excretion from liver compartment to fecal storage
+#     - biliary excretion based on free fraction in blood leaving liver tissue
+#   separate GI lumen and GI tissue compartments
+#   unabsorbed fraction to fecal storage via rate constant (oral dose)
+#   blood flow rates as a fraction of cardiac output
+#   tissue volumes as a fraction of total body volume
+#   include growth (changing body weight) as input parameter
+#   option to have GI lumen connected directly to liver
+#   saturable protein binding in the liver
+#   include first order direct blood loss term from single blood compartment
+#   
+#
+# Author: Amanda Bernstein, September 2019
+#         Updated: May 2021
+#         Note, since January 2021 updates are tracked on BitBucket
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+# STATE VARIABLES for the model (for which ODEs are provided).
+
+States = {A_bl,         # Amount in single blood (plasma) (mg)
+          A_ven,        # ... venous blood (mg)
+          A_art,        # ... arterial blood (mg)
+          A_lu,         # ... lung tissue (mg)
+          A_gi,         # ... GI tissue (mg)
+          A_li,         # ... liver (mg)
+          A_fst,        # ... fecal storage (mg)
+          A_ki,         # ... kidney (mg)
+          A_fil,        # ... filtrate (mg)
+          A_ust,        # ... urinary storage (mg)
+          A_tc1,        # ... tissue compartment 1 (mg)
+          A_tc2,        # ... tissue compartment 2 (mg)
+          A_tc3,        # ... tissue compartment 3 (mg)
+          A_tc4,        # ... tissue compartment 4 (mg)
+          A_tc5,        # ... tissue compartment 5 (mg)
+          A_om,         # ... other metabolizing tissues (mg)
+          A_rb,         # ... rest of body (mg)
+          A_glumen,     # ... GI lumen (mg)
+          A_lib,        # ... bound in liver (mg)
+          R_IV,         # Rate of intravenous dose (mg/h)
+          R_oral,       # Rate of continuous oral dose (mg/h)
+          A_in,         # Total amount input to the system (mg)
+          A_loss,       # Amount lost directly from single blood (plasma) (mg)
+          A_exh,        # Amount lost from the blood (plasma) via exhalation (mg)
+          A_urine,      # Amount excreted via urinary elimination (mg)
+          A_fecal,      # Amount excreted via fecal elimination (mg)
+          A_ch,         # Amount in closed chamber (mg/h)
+          A_met_sat,    # Cumulative amount metabolized via saturable pathway (mg)
+          A_met_sat_li, # Cumulative amount metabolized via saturable pathway in liver (mg)
+          A_met_sat_om, # Cumulative amount metabolized via saturable pathway in other metabolizing tissues (mg)
+          A_met_sat_lu, # Cumulative amount metabolized via saturable pathway in lung (mg)
+          A_met_1st,    # Cumulative amount metabolized via 1st order pathway (mg)
+          A_met_1st_li, # Cumulative amount metabolized via 1st order pathway in liver (mg)
+          A_met_1st_lu, # Cumulative amount metabolized via 1st order pathway in lung (mg)
+          A_met_1st_om, # Cumulative amount metabolized via 1st order pathway in other metabolizing tissues (mg)
+          V_max_om_t,	# Time dependent maximum metabolic rate in other metabolizing tissues (mg/h)
+          V_max_li_t,   # Time dependent maximum metabolic rate in liver (mg/h)
+          V_max_lu_t,   # Time dependent maximum metabolic rate in lung (mg/h)
+          AUC_bl,       # AUC for total blood (mg-h/L)
+          AUC_ven,      # ... venous blood (mg-h/L)
+          AUC_art,      # ... arterial blood (mg-h/L)
+          AUC_lu,       # ... lung tissue (mg-h/L)
+          AUC_gi,       # ... GI tissue (mg-h/L)
+          AUC_li,       # ... liver (mg-h/L)
+          AUC_ki,       # ... kidney (mg-h/L)
+          AUC_tc1,      # ... tissue compartment 1 (mg-h/L)
+          AUC_tc2,      # ... tissue compartment 2 (mg-h/L)
+          AUC_tc3,      # ... tissue compartment 3 (mg-h/L)
+          AUC_tc4,      # ... tissue compartment 4 (mg-h/L)
+          AUC_tc5,      # ... tissue compartment 5 (mg-h/L)
+          AUC_om,       # ... other metabolizing tissues (mg-h/L)
+          AUC_rb,       # ... rest of body (mg-h/L)
+          Conc,         # Concentration in ambient air (ppm)
+          Q_cc};        # Cardiac output coefficient (L/h/kg^AS_co)
+
+
+# End of STATE VARIABLES.
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+# OUTPUT VARIABLES for the model (which can be obtained at any point in time
+# as analytic functions of state variables, inputs, and parameters).
+
+Outputs = {A_bal,     # Mass balance (mg)
+           A_body,    # Amount in body (mg)
+           A_out,     # Amount that has left body (metabolized + excreted) (mg)
+           C_li,      # Concentration in liver (mg/L)
+           C_lu,      # ... lung tissue (mg/L)
+           C_gi,      # ... GI tissue (mg/L)
+           C_ki,      # ... kidney (mg/L)
+           C_fil,     # ... filtrate (mg/L)
+           C_tc1,     # ... tissue compartment 1 (mg/L)
+           C_tc2,     # ... tissue compartment 2 (mg/L)
+           C_tc3,     # ... tissue compartment 3 (mg/L)
+           C_tc4,     # ... tissue compartment 4 (mg/L)
+           C_tc5,     # ... tissue compartment 5 (mg/L)
+           C_om,      # ... other metabolizing tissues (mg/L)
+           C_rb,      # ... rest of body (mg)
+           C_bl,      # ... single blood (mg/L)
+           C_ch,      # ... chamber (mg/L)
+           C_chppm,   # ... chamber (ppm)
+           C_inh,     # ... inhaled air (mg/L)
+           C_ven,     # ... venous blood (mg/L)
+           C_pulv,    # ... gas exchange region of lungs (pulmonary vein) (mg/L)
+           C_art_in,  # ... blood entering the arterial compartment (mg/L)
+           C_art_comp, # ... arterial blood (when there are separate venous and arterial blood terms) (mg/L)
+           C_art,     # ... arterial blood (mg/L)
+           BW_out,    # Body weight (kg)
+           Free,      # Free fraction of chemical in blood
+           CarD,      # Cardiac depression factor
+           Q_bal,     # Flow balance
+           Q_cardiac, # Cardiac output (L/h)
+           Q_li,      # Blood flow rates to liver (L/h)
+           Q_ki,      # ... kidney (L/h)
+           Q_gi,      # ... GI tissue (L/h)
+           Q_tc1,     # ... tissue compartment 1 (L/h)
+           Q_tc2,     # ... tissue compartment 2 (L/h)
+           Q_tc3,     # ... tissue compartment 3 (L/h)
+           Q_tc4,     # ... tissue compartment 4 (L/h)  
+           Q_tc5,     # ... tissue compartment 5 (L/h)
+           Q_om,      # ... other metabolizing tissues (L/h)
+           Q_rb,      # ... rest of body (L/h)
+           k_GFR,     # Clearance rate from blood to filtrate compartment (L/h)
+           Q_p,       # Alveolar ventilation rate (L/h)
+           V_max_reabs, # Resorption maximum (mg/h) adjusted by BW
+           k_bile,    # Biliary excretion rate (/h) adjusted by BW
+           k_urine,   # Urinary elimination rate (/h) adjusted by BW
+           k_feces,   # Fecal elimination rate (/h) adjusted by BW
+           k_ust,     # Rate constant to urinary storage (/h) adjusted by BW
+           k_bloss,   # Direct blood loss rate (/h) adjusted by BW
+           V_max_lu,  # Maximum metabolic rate for saturable pathway in lung (mg/h)
+           k_met_lu,  # First-order metabolic rate in lung tissue (1/h)
+           V_max_li,  # Maximum metabolic rate for saturable pathway in liver (mg/h)
+           k_met_li,  # First-order metabolic rate in liver tissue (1/h)
+           V_max_om,  # Maximum metabolic rate for saturable pathway in other metabolizing tissues (mg/h)
+           k_met_om,  # First-order metabolic rate in other metabolzing tissues (1/h)
+           R_met_sat_li,    # Rate of saturable metabolism in liver (mg/h).
+           R_met_1st_li,    # Rate of 1st order metabolism in liver (mg/h).
+           R_met_sat_om,    # Rate of saturable metabolism in other metabolizing tissues (mg/h).
+           R_met_1st_om,    # Rate of 1st order metabolism in other metabolizing tissues (mg/h).
+           R_met_sat_lu,    # Rate of saturable metabolism in lung (mg/h).
+           R_met_1st_lu,    # Rate of 1st order metabolism in lung (mg/h).
+           R_artfil,  # Flow rate from arterial blood to filtrate (glomerular filtration)
+    	   R_libind,  # Rate of saturable protein binding in liver
+           R_reabs,   # Rate of renal reabsorption
+	       R_blloss,  # Rate of direct blood loss
+           R_glgi,    # absorption rate from GI lumen to GI tissue
+           R_glli,    # absorption rate from GI lumen to liver
+           R_glfst,   # (un)absorption rate from GI lumen to fecal storage
+           R_gifst,   # rate from GI tissue to fecal storage
+    	   R_gili,    # absorption rate from GI tissue to liver
+    	   R_biliary, # biliary excretion rate
+           R_liunbind, # rate of protein unbinding in liver
+           R_feces,   # rate from fecal storage to feces
+           R_filust,  # Rate to urinary storage from filtrate
+           R_urine,   # rate from urinary storage to urine
+           R_exh,   # Rate chemical in exhaled
+           R_inh,   # Rate chemical is inhaled
+	       V_bl,      # Volume of single blood (L)
+           V_ven,     # ... venous blood (L)
+           V_art,     # ... arterial blood (L)
+           V_lu,      # ... lung (L)
+           V_ki,      # ... kidney (L)
+           V_fil,     # ... filtrate (L)
+           V_li,      # ... liver (L)
+           V_gi,      # ... GI tissue (L)
+           V_tc1,     # ... tissue compartment 1 (L)
+           V_tc2,     # ... tissue compartment 2 (L)
+           V_tc3,     # ... tissue compartment 3 (L)
+           V_tc4,     # ... tissue compartment 4 (L)
+           V_tc5,     # ... tissue compartment 5 (L)
+           V_om,      # ... other metabolizing tissues (L)
+           V_rb,      # ... rest of body (L)
+           V_total_bl_value,  # Volume relative to body weight of total blood (single or venous plus arterial)
+           V_lu_value,  # ... lung
+           V_ki_value,  # ... kidney tissue
+           V_fil_value, # ... kidney filtrate
+           V_li_value,  # ... liver
+           V_gi_value,  # ... GI tissue
+           V_tc1_value, # ... tissue compartment 1
+           V_tc2_value, # ... tissue compartment 2
+           V_tc3_value, # ... tissue compartment 3
+           V_tc4_value, # ... tissue compartment 4
+           V_tc5_value, # ... tissue compartment 5
+           V_om_value,  # ... other metabolizing tissues
+           V_rb_value,  # ... rest of body
+           Q_relative,  # Unitless flow in body for flow balance
+           total_volume_frac}; # Total volume fraction of tissues in model
+           
+# End of OUTPUT VARIABLES.
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+# INPUT VARIABLES for the model (which are independent of other variables, and
+# which may vary in time).
+Inputs = {BW_in,      # Body weight (kg)
+          Free_in};   # Free fraction of chemical in blood
+
+# End of INPUT VARIABLES.
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+# PARAMETERS for the model (which are independent of time).
+# Default values are typically zero
+#   unless the parameter is used as a divisor
+#   (in which case the default value is 1)
+
+MOLWT = 0.0;     # Molecular weight of chemical (g/mol).
+RTemp = 24450.0; # Ideal gas constant (R) times temperature (Kelvin) used in 
+                 # the conversion of concentrations in ppm to mg/L. 
+                 # Assumes 1 atm and 25 deg C. (ppm*g*L/mg/mol)
+
+# Experimental parameters.
+BW = 0.0;              # Initial Body weight (kg)
+F_free = 1.0;          # Initial free fraction of chemical in plasma
+oral_dose_init = 0.0;  # Initial oral dose (mg/kg)
+iv_dose = 0.0;         # Initial intravenous dose (mg/kg)
+
+# Model structure switches
+single_blood = 0.0;    # Switch to have a single blood compartment (if non-zero)
+                       #   as opposed to separate venous and arterial blood
+                       #   compartments (if zero)
+venous_ss = 1.0;       # Switch to have venous blood concentration approximated 
+                       #   as either steady-state (if non-zero) or dynamic 
+                       #   (if zero)
+arterial_ss = 1.0;     # Switch to have arterial blood concentration 
+                       #   approximated as either steady-state (if non-zero)
+                       #   or dynamic (if zero)
+exist_lung = 1.0;      # Switch to have lung exist as separate compartment 
+                       #   for inhalation model (if non-zero)
+GE_ss = 1.0;           # Switch to have gas exchange region computed using a
+                       #   steady state approximation (if non-zero) or fully
+                       #   dynamic (if zero)
+
+
+# Experimental parameters - Inhalation.
+Conc_init = 0.0; # Initial concentration in air (ppm)
+NCH = 0.0;       # Number of animals in chamber.
+VCHC = 0.0;      # Uncorrected volume for closed chamber (L). When this value is
+                 # nonzero, the simulation assumes there is a closed chamber and
+                 # the chamber concentration is used as the inhaled air
+                 # concentration; otherwise, the ambient air concentration is
+                 # used as the inhaled air concentration.
+KL = 0.0;        # Decay rate of amount in chamber (h^-1).
+F_inh = 1.0;     # Fractional absorption of chemical
+                       
+# Allometric Scaling constants
+AS_co = 0.75;         # BW scaling for cardiac output
+AS_met = 0.75;        # BW scaling for saturable metabolism maximum rate 
+AS_cl_met = -0.25;    # BW scaling for first order metabolic constants
+                      #   (corresponding rate constant representing 
+                      #   V_max/K_m/V_tissue should be scaled by (AS_met-1))
+AS_cl = -0.25;        # BW scaling for other first order clearance parameters
+                       
+
+# Partition coefficients.
+P_lu = 1.0;           # Lung tissue/plasma partition coefficient
+P_li = 1.0;           # Liver/plasma partition coefficient
+P_ki = 1.0;           # Kidney/blood partition coefficient
+P_gi = 1.0;           # GI tissue/blood partition coefficient
+P_tc1 = 1.0;          # Storage Compartment 1/blood partition coefficient
+P_tc2 = 1.0;          # Storage Compartment 2/blood partition coefficient
+P_tc3 = 1.0;          # Storage Compartment 3/blood partition coefficient
+P_tc4 = 1.0;          # Storage Compartment 4/blood partition coefficient
+P_tc5 = 1.0;          # Storage Compartment 5/blood partition coefficient
+P_om = 1.0;           # Other metabolizing tissues/blood partition coefficient
+P_rb = 1.0;           # Rest of Body/blood partition coefficient
+
+# Biochemical parameters.
+V_max_reabsc = 0.0;   # Transporter maximum (mg/h)
+K_m_reabs = 1.0;      # Transporter affinity constant (mg/L)
+k_urinec = 0.0;       # Urinary elimination rate (/h)
+k_fst = 0.0;          # Transfer rate constant from GI tissue to fecal elim. (/h)
+k_absgi = 0.0;        # Oral absorption rate  from GI lumen to GI tissue (/h)
+k_absli = 0.0;        # Oral absorption rate from GI lumen to liver (/h)
+k_absli2 = 0.0;       # Oral absorption rate from GI tissue to liver (/h)
+F_unabs = 0.0;        # Fraction of dose unabsorbed (amount put directly into fecal storage at time zero)
+k_unabs = 0.0;        # Rate unabsorbed fraction goes to fecal storage (/h) 
+                      # Note, the rate of transfer using k_unabs > 0 is different than that set using F_unabs. Predictions will differ using F_unabs compared to k_unabs = k_absgi*F_unabs/(1-F_unabs).
+k_ustc = 0.0;         # Rate constant to urinary storage compartment (/h)
+k_ven_ustc = 0.0;     # Rate constant to urinary storage compartment from venous blood (/h)
+k_bilec = 0.0;        # Biliary excretion rate to fecal storage (/h)
+k_fecesc = 0.0;       # Rate constant from fecal storage to fecal elim. (/h)
+k_loss = 0.0;         # Rate of constant blood (plasma) loss (L/h)
+VPR = 0.0;            # Alveolar ventilation perfusion ratio
+P_B = 1.0;            # Blood to air partition coefficient
+V_max_bind_li = 0.0;     # Saturable binding in liver, maximum binding capacity (mg/h)
+K_m_bind_li = 1.0;       # Saturable binding in liver, affinity constant (mg/L)
+k_off_li = 0.0;          # Binding in liver, dissociation rate constant (/h)
+k_blossc = 0.0;       # Rate constant for constant loss of chemical from blood (/h)
+k_GFRc = 0.0;         # Rate constant to filtrate from blood (glomerular filtration rate) (fraction of cardiac output)
+k_enz_resyn = 0.0;    # Metabolizing enzyme resynthesis rate
+k_enz_loss = 0.0;     # Metabolizing enzyme loss rate
+
+# Chemical-Specific Metabolism Parameters
+V_max_luc = 0.0;      # Maximum metabolic rate constant for saturable pathway in lung tissue (mg/h/BW^AS_met)
+K_m_lu = 1.0;         # Affinity constant for saturable pathway in lung tissue (mg/L)
+k_met_luc = 0.0;      # First-order metabolic rate constant in lung tissue (1/h/kg^AS_cl_met).
+V_max_lic = 0.0;      # Maximum metabolic rate constant for saturable pathway in liver (mg/h/BW^AS_met)
+K_m_li = 1.0;         # Affinity constant for saturable pathway in liver (mg/L)
+k_met_lic = 0.0;      # First-order metabolic rate constant in liver (1/h/kg^AS_cl_met).
+V_max_omc = 0.0;      # Maximum metabolic rate constant for saturable pathway in other metabolizing tissues (mg/h/BW^AS_met)
+K_m_om = 1.0;         # Affinity constant for saturable pathway in other metabolizing tissues (mg/L)
+k_met_omc = 0.0;      # First-order metabolic rate constant in other metabolzing tissues (1/h/kg^AS_cl_met).
+
+# Blood flow rates to compartments as fraction of cardiac output
+Q_cardiacc = 0.0;
+Q_lic = 0.0;
+Q_kic = 0.0;
+Q_gic = 0.0;
+Q_tc1c = 0.0;
+Q_tc2c = 0.0;
+Q_tc3c = 0.0;
+Q_tc4c = 0.0;
+Q_tc5c = 0.0;
+Q_omc = 0.0;
+Q_rbc = 0.0;
+
+# Compartment volumes as fraction of total body volume
+V_blc = 1.0;
+V_venc = 1.0;
+V_artc = 1.0;
+V_luc = 1.0;
+V_kic = 1.0;
+V_filc = 1.0;
+V_lic = 1.0;
+V_gic = 1.0;
+V_tc1c = 1.0;
+V_tc2c = 1.0;
+V_tc3c = 1.0;
+V_tc4c = 1.0;
+V_tc5c = 1.0;
+V_omc = 1.0;
+V_rbc = 1.0;
+
+# Parameters related to endogenous background blood levels
+R_0bgli = 0.0;  # Zero order rate of endogenous production in liver
+
+# Parameters related to cardiac depression
+CDSW = 0.0;     # Cardiac depression switch (0 is off, 1 is on)
+KIV = 1.0;      # Inhibition constant for cardiac depression
+NV = 0.0;       # Empiraically determined constant (Hill coefficient) for cardiac depression
+
+# Calculated parameters
+GASD = 0.0;       # Factor for converting ppm to mg/L.
+V_ch = 0.0;       # Corrected volume of closed chamber (L).
+A_bl0 = 0.0;      # Initial value of single blood compartment (mg).
+A_ven0 = 0.0;     # Initial value of venous blood compartment (mg).
+Conc_ambient = 0.0; # Initial concentration of ambient air (ppm).
+
+# Initial values of time dependent maximum metabolic rates (calculated).
+V_max_om_0 = 0.0; # in other metabolizing tissues	
+V_max_li_0 = 0.0; # in liver
+V_max_lu_0 = 0.0; # in lung
+
+# End of PARAMETERS.
+#------------------------------------------------------------------------------
+
+
+
+#------------------------------------------------------------------------------
+# MODEL INITIALIZATION section.
+Initialize {
+
+    # Factor for converting ppm to mg/L.
+    # 24.45 = L/mol (ideal gas law R*T/P) at 25C and 1 atmosphere.
+    # MOLWT / 24.45 gives g/L of chemical at that temperature and pressure.
+    # MOLWT * (1000 mg/g) / 24.45 gives mg/L.
+    # MOLWT*(1000 mg/g)/(24.45 * 10^6) gives mg/L/ppm.
+    # GASD (defined below) gives mg/L/ppm at 25C and 1 atmosphere.
+    # If Conc is in ppm, Conc*GASD is in mg/L.    
+    # GASD = MOLWT / 24450.0;
+    GASD = MOLWT/RTemp;
+    
+    # Corrected volume of closed chamber (accounting for the volume of the
+    # animals occupying the closed chamber).
+    V_ch = (VCHC ? VCHC - (NCH * BW) : 0);
+    
+    # Conditional equations to determine initial values of blood compartments.
+    A_bl0 = (single_blood ? iv_dose*BW : 0.0);
+    A_ven0 = (single_blood ? 0.0 : iv_dose*BW);
+    
+    # Conditional equations to determine initial value of ambient air
+    Conc_ambient = (V_ch ? 0.0 : Conc_init);
+    
+    # Assign an initial value for each state.
+    A_bl = A_bl0;
+    A_ven = A_ven0;
+    A_art = 0.0;
+    A_lu = 0.0;
+    A_gi = 0.0;
+    A_li = 0.0;
+    A_fst = oral_dose_init * BW * F_unabs;
+    A_ki = 0.0;
+    A_fil = 0.0;
+    A_ust = 0.0;
+    A_tc1 = 0.0;
+    A_tc2 = 0.0;
+    A_tc3 = 0.0;
+    A_tc4 = 0.0;
+    A_tc5 = 0.0;
+    A_om = 0.0;
+    A_rb = 0.0;
+    A_glumen = oral_dose_init * BW * (1 - F_unabs);
+    R_IV = 0.0;
+    R_oral = 0.0;
+    A_loss = 0.0;
+    A_exh = 0.0;
+    A_urine = 0.0;
+    A_fecal = 0.0;
+    A_in = oral_dose_init * BW + iv_dose * BW;
+    A_lib = 0.0;
+    Conc = Conc_ambient;
+    Q_cc = Q_cardiacc;
+    A_ch = Conc_init*GASD*V_ch;
+    
+    AUC_bl = 0.0;       # AUC for total blood (mg-h/L)
+    AUC_ven = 0.0;      # ... venous blood (mg-h/L)
+    AUC_art = 0.0;      # ... arterial blood (mg-h/L)
+    AUC_lu = 0.0;       # ... lung tissue (mg-h/L)
+    AUC_gi = 0.0;       # ... GI tissue (mg-h/L)
+    AUC_li = 0.0;       # ... liver (mg-h/L)
+    AUC_ki = 0.0;       # ... kidney (mg-h/L)
+    AUC_tc1 = 0.0;      # ... tissue compartment 1 (mg-h/L)
+    AUC_tc2 = 0.0;      # ... tissue compartment 2 (mg-h/L)
+    AUC_tc3 = 0.0;      # ... tissue compartment 3 (mg-h/L)
+    AUC_tc4 = 0.0;      # ... tissue compartment 4 (mg-h/L)
+    AUC_tc5 = 0.0;      # ... tissue compartment 5 (mg-h/L)
+    AUC_om = 0.0;       # ... other metabolizing tissues (mg-h/L)
+    AUC_rb = 0.0;       # ... rest of body (mg-h/L)
+    
+    A_met_sat = 0.0;    # Cumulative amount metabolized via saturable pathway (mg)
+    A_met_sat_li = 0.0; # ...  in liver (mg)
+    A_met_sat_om = 0.0; # ... in other metabolizing tissues (mg)
+    A_met_sat_lu = 0.0; # ... in lung (mg)
+    A_met_1st = 0.0;    # Cumulative amount metabolized via 1st order pathway (mg)
+    A_met_1st_li = 0.0; # ... in liver (mg)
+    A_met_1st_lu = 0.0; # ... in lung (mg)
+    A_met_1st_om = 0.0; # ... in other metabolizing tissues (mg)
+    
+    # Set the initial values of the time dependent maximum metabolic rates using initial body weight BW. *Need to do this in two steps due to the use of the "pow" function.
+    V_max_om_0 = V_max_omc * pow(BW, AS_met);
+    V_max_li_0 = V_max_lic * pow(BW, AS_met);
+    V_max_lu_0 = V_max_luc * pow(BW, AS_met);
+    
+    V_max_om_t = V_max_om_0;	
+    V_max_li_t = V_max_li_0;
+    V_max_lu_t = V_max_lu_0;
+    
+}
+# End of MODEL INITIALIZATION.
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+# DYNAMICS section.
+Dynamics {
+
+    # Time-varying input parameters.
+    BW_out = BW_in;         
+    Free = Free_in;
+    
+    #Computed parameters based on BW
+    
+    # Chemical-Specific Rates of Elimination and Transfer that scale with BW
+    
+    # For metabolic V_max, these are the set point values for when V_max is changing due to dynamic enzyme production rates.
+    V_max_reabs = V_max_reabsc*pow(BW_out, AS_met);
+    V_max_lu = V_max_luc * pow(BW_out, AS_met);
+    V_max_li = V_max_lic * pow(BW_out, AS_met);
+    V_max_om = V_max_omc * pow(BW_out, AS_met);
+    
+    k_met_lu = k_met_luc * pow(BW_out, AS_cl_met);
+    k_met_li = k_met_lic * pow(BW_out, AS_cl_met);
+    k_met_om = k_met_omc * pow(BW_out, AS_cl_met);
+    
+    k_bile = k_bilec*pow(BW_out, AS_cl);
+    k_feces = k_fecesc*pow(BW_out, AS_cl);
+    k_ust = k_ustc*pow(BW_out, AS_cl);
+    k_ven_ust = k_ven_ustc*pow(BW_out, AS_cl);
+    k_urine = k_urinec*pow(BW_out, AS_cl);
+    k_bloss = k_blossc*pow(BW_out, AS_cl);
+    
+    # Compartment volumes (L; assumed approx. equal to kg)
+    V_bl = V_blc*BW_out;
+    V_ven = V_venc*BW_out;
+    V_art = V_artc*BW_out;
+    V_lu = V_luc*BW_out;
+    V_ki = V_kic*BW_out;
+    V_fil = V_filc*BW_out;
+    V_li = V_lic*BW_out;
+    V_gi = V_gic*BW_out;
+    V_tc1 = V_tc1c*BW_out;
+    V_tc2 = V_tc2c*BW_out;
+    V_tc3 = V_tc3c*BW_out;
+    V_tc4 = V_tc4c*BW_out;
+    V_tc5 = V_tc5c*BW_out;
+    V_om = V_omc*BW_out;
+    V_rb = V_rbc*BW_out;
+    
+    # Concentrations in tissue compartments that do not depend on cardiac output.
+    C_bl = A_bl / V_bl;
+    C_lu = A_lu / V_lu;
+    C_gi = A_gi / V_gi;
+    C_li = A_li / V_li;
+    C_ki = A_ki / V_ki;
+    C_fil = A_fil / V_fil;
+    C_tc1 = A_tc1 / V_tc1;
+    C_tc2 = A_tc2 / V_tc2;
+    C_tc3 = A_tc3 / V_tc3;
+    C_tc4 = A_tc4 / V_tc4;
+    C_tc5 = A_tc5 / V_tc5;
+    C_om = A_om / V_om;
+    C_rb = A_rb / V_rb;
+    
+    # Cardiac depression term
+    CarD = 1.0 + CDSW*pow(((C_rb/P_rb)/KIV),NV);
+    
+    # Cardiac output and blood flows to compartments (L/h)
+    Q_cardiac = Q_cc*pow(BW_out, AS_co)/CarD;
+    Q_li = Q_lic*Q_cardiac;
+    Q_ki = Q_kic*Q_cardiac;
+    Q_gi = Q_gic*Q_cardiac;
+    Q_tc1 = Q_tc1c*Q_cardiac;
+    Q_tc2 = Q_tc2c*Q_cardiac;
+    Q_tc3 = Q_tc3c*Q_cardiac;
+    Q_tc4 = Q_tc4c*Q_cardiac;
+    Q_tc5 = Q_tc5c*Q_cardiac;
+    Q_om = Q_omc*Q_cardiac;
+    Q_rb = Q_rbc*Q_cardiac;
+    
+    # Compute rate constants that scale with cardiac output
+    k_GFR = k_GFRc*Q_cardiac;
+    
+    # Alveolar ventilation rate (L/h)
+    Q_p = VPR*Q_cardiac;
+    
+    # Concentration in chamber ...
+    C_ch = (V_ch ? A_ch / V_ch : 0);    # ... (mg/L).
+    C_chppm = C_ch / GASD;              # ... (ppm).
+
+    # Concentration in inhaled air (mg/L). This is equal to C_ch (concentration
+    # in the chamber, mg/L) for a closed chamber experiment, and is otherwise
+    # Conc * GASD (concentration in ambient air, mg/L).
+    C_inh = (V_ch ? C_ch : Conc * GASD);
+    
+    #  **See the document "Free_bound_distribution_eqns.pdf" for an explanation of how the steady state approximations for concentrations in blood and gas exchange regions are derived.
+    
+    # Concentration in venous blood
+    # "C_ven" represents the concentration in venous blood. When the Boolean
+    # variable "venous_ss" is TRUE (so that a steady-state approximation is used
+    # for the venous blood concentration), we set the value of
+    # "C_ven" to the value calculated for "C_ven_ss" as shown below. (Note
+    # that there are three possible formulas for "C_ven_ss" depending on the
+    # value of the Boolean variables "exist_lung" and "GE_ss". Further
+    # explanation of the expressions for "C_ven_ss" is provided in the document
+    # "Free_bound_distribution_eqns.pdf".)
+    # When "venous_ss" is FALSE, the value of "C_ven" is calculated based on the
+    # value of A_ven as shown.
+
+    R_ven_in = Free*((Q_li+Q_gi)*C_li/P_li + Q_ki*C_ki/P_ki + Q_tc1*C_tc1/P_tc1 
+        + Q_tc2*C_tc2/P_tc2 + Q_tc3*C_tc3/P_tc3 + Q_tc4*C_tc4/P_tc4 
+        + Q_tc5*C_tc5/P_tc5 + Q_om*C_om/P_om + Q_rb*C_rb/P_rb) + R_IV;
+    Ven_loss_c = k_ven_ust*V_ven + k_loss; # Direct losses from venous blood
+    C_ven_ss_lung = (GE_ss ? ( (Q_cardiac + Free*k_GFR)*(Q_cardiac*Free 
+        + Q_p/P_B)*R_ven_in + (Q_cardiac*(1-Free)*(Q_cardiac*Free 
+        + Q_p/P_B)*Q_cardiac*Free*C_lu)/P_lu ) / ( (Q_cardiac 
+        + Ven_loss_c)*(Q_cardiac*Free + Q_p/P_B)*(Q_cardiac + Free*k_GFR) 
+        - (Q_cardiac*Free + Q_p/P_B)*pow(Q_cardiac*(1-Free),2) ) 
+      : ( (Q_cardiac + Free*k_GFR)*R_ven_in 
+        + (Q_cardiac*(1-Free)*Q_cardiac*Free*C_lu)/P_lu ) / ( (Q_cardiac 
+        + Ven_loss_c)*(Q_cardiac + Free*k_GFR) - pow(Q_cardiac*(1-Free),2) ) );
+    C_ven_ss = (exist_lung ? C_ven_ss_lung : ( (Q_cardiac 
+        + Free*k_GFR)*(Q_cardiac*Free + Q_p/P_B)*R_ven_in 
+        + Q_cardiac*Free*Q_cardiac*(1-Free)*(Q_p*F_inh*C_inh) ) / 
+        ( (Q_cardiac + Ven_loss_c)*(Q_cardiac*Free + Q_p/P_B)*(Q_cardiac 
+        + Free*k_GFR) - Q_cardiac*(1-Free)*pow(Q_cardiac*Free,2) 
+        - (Q_cardiac*Free + Q_p/P_B)*pow(Q_cardiac*(1-Free),2) ) );
+    C_ven = (venous_ss ? C_ven_ss : A_ven/V_ven);
+    
+    # "C_pulv" represents the concentration in blood in the "gas exchange"
+    # region of the lungs (i.e., in the pulmonary vein). When the Boolean
+    # variable "GE_ss" is TRUE (so that a steady-state approximation is used for
+    # quantities related to the gas exchange region), we set the value of
+    # "C_pulv" to the value calculated for "C_pulv_ss" as shown below. (Note
+    # that there are two possible formulas for "C_pulv_ss" depending on the
+    # value of the Boolean variable "exist_lung". Further explanation of the
+    # expressions for "C_pulv_ss" is provided in the document
+    # "Free_bound_distribution_eqns.pdf".)
+    # When "GE_ss" is FALSE, the value of "C_pulv" is set to zero.
+
+    C_pulv_ss = (exist_lung ? ( (Q_cardiac + Free*k_GFR)*(Q_cardiac 
+        + Ven_loss_c)*(Q_p*F_inh*C_inh) 
+        + (Q_cardiac*(1-Free)*Q_cardiac*Free*Q_cardiac*Free*C_lu)/P_lu 
+        + (Q_cardiac + Free*k_GFR)*Q_cardiac*Free*R_ven_in 
+        - (Q_p*F_inh*C_inh)*pow(Q_cardiac*(1-Free),2) ) / ( (Q_cardiac 
+        + Ven_loss_c)*(Q_cardiac*Free + Q_p/P_B)*(Q_cardiac + Free*k_GFR) 
+        - (Q_cardiac*Free + Q_p/P_B)*pow(Q_cardiac*(1-Free),2) ) 
+      : ( (Q_cardiac + Free*k_GFR)*(Q_cardiac 
+        + Ven_loss_c)*(Q_p*F_inh*C_inh) + (Q_cardiac 
+        + Free*k_GFR)*Q_cardiac*Free*R_ven_in 
+        - (Q_p*F_inh*C_inh)*pow(Q_cardiac*(1-Free),2) ) / ( (Q_cardiac 
+        + Ven_loss_c)*(Q_cardiac*Free + Q_p/P_B)*(Q_cardiac 
+        + Free*k_GFR) - Q_cardiac*(1-Free)*pow(Q_cardiac*Free,2) 
+        - (Q_cardiac*Free + Q_p/P_B)*pow(Q_cardiac*(1-Free),2) ) );
+    C_pulv = (GE_ss ? C_pulv_ss : 0.0);
+          
+    # Concentrations related to arterial blood
+    # "C_art_in" is used in the ODE for A_art to represent the concentration
+    # entering the arterial blood compartment based on the value of the Boolean
+    # variable "exist_lung" (which informs whether the lung tissue compartment
+    # is explicitly included).
+    C_art_in = (exist_lung ? C_lu/P_lu : C_pulv);
+    
+    # "C_art" represents the concentration in blood entering other tissue
+    # compartments. When the Boolean variable "single_blood" is TRUE (so that
+    # one blood compartment is used in the model), the value of "C_art" is
+    # calculated based on the value of A_bl as shown. If "single_blood" is 
+    # FALSE, "C_art" is set to the value of "C_art_comp" (i.e., the value of
+    # "C_art" when using an arterial blood compartment).
+    # When the Boolean variable "arterial_ss" is TRUE (so that a steady-state
+    # approximation is used for the arterial blood concentration), we set the
+    # value of "C_art_comp" to the value calculated for "C_art_ss" as shown
+    # below. (Note that there are three possible formulas for "C_art_ss"
+    # depending on the value of the Boolean variables "exist_lung" and "GE_ss".
+    # Further explanation of the expressions for "C_art_ss" is provided in the
+    # document "Free_bound_distribution_eqns.pdf".)
+    # When "arterial_ss" is FALSE, the value of "C_art_comp" is calculated based
+    # on the value of A_art as shown.
+
+    C_art_ss_lung = (GE_ss ? ( ( (Q_cardiac + Ven_loss_c)*(Q_cardiac*Free 
+        + Q_p/P_B)*Q_cardiac*Free*C_lu )/P_lu 
+        + Q_cardiac*(1-Free)*(Q_cardiac*Free+Q_p/P_B)*R_ven_in ) / ( (Q_cardiac 
+        + Ven_loss_c)*(Q_cardiac*Free + Q_p/P_B)*(Q_cardiac + Free*k_GFR) 
+        - (Q_cardiac*Free + Q_p/P_B)*pow(Q_cardiac*(1-Free),2) ) 
+      : ( ((Q_cardiac + Ven_loss_c)*Q_cardiac*Free*C_lu)/P_lu 
+        + Q_cardiac*(1-Free)*R_ven_in ) / ( (Q_cardiac 
+        + Ven_loss_c)*(Q_cardiac + Free*k_GFR) - pow(Q_cardiac*(1-Free),2) ) );
+    C_art_ss = (exist_lung ? C_art_ss_lung : ( Q_cardiac*Free*(Q_cardiac 
+        + Ven_loss_c)*(Q_p*F_inh*C_inh) + R_ven_in*pow(Q_cardiac*Free,2) 
+        + Q_cardiac*(1-Free)*(Q_cardiac*Free + Q_p/P_B)*R_ven_in ) / ( (Q_cardiac 
+        + Ven_loss_c)*(Q_cardiac*Free + Q_p/P_B)*(Q_cardiac + Free*k_GFR) 
+        - Q_cardiac*(1-Free)*pow(Q_cardiac*Free,2) - (Q_cardiac*Free 
+        + Q_p/P_B)*pow(Q_cardiac*(1-Free),2) ) );
+    C_art_comp = (arterial_ss ? C_art_ss : A_art/V_art);
+    C_art = (single_blood ? A_bl / V_bl : C_art_comp);
+    
+
+    # Rates (mg/h)
+    
+    # Absorption Rates
+    R_glgi = k_absgi*A_glumen;       # absorption rate from GI lumen to GI tissue
+    R_glli = k_absli*A_glumen/CarD;  # absorption rate from GI lumen to liver
+    R_gili = k_absli2*A_gi/CarD;     # absorption rate from GI tissue to liver
+    
+    # Excretion Rates
+    R_glfst = k_unabs*A_glumen;   # transfer rate from GI lumen to fecal storage
+    R_gifst = k_fst*A_gi;         # rate from GI tissue to fecal storage
+    R_biliary = Free*k_bile*A_li/P_li;    # biliary excretion rate based on free amount of chemical in liver
+    R_feces = k_feces*A_fst;      # rate from fecal storage to feces
+    R_filust = k_ust*V_fil*C_fil;  # Rate to urinary storage from filtrate
+    R_venust = k_ven_ust*(single_blood ? V_bl*C_bl : V_ven*C_ven); #Rate to urinary storage from venous blood
+    R_urine = k_urine*A_ust;        # rate from urinary storage to urine
+
+    # Kidney Reabsorption Rates
+    R_artfil = Free*k_GFR*C_art; #flow rate from arterial blood to filtrate (glomerular filtration)
+    R_reabs = V_max_reabs*C_fil/(K_m_reabs + C_fil); #renal reabsorption rate
+    
+    # Protein Binding Rates
+    R_libind = (V_max_bind_li*C_li*Free/P_li)/(K_m_bind_li + C_li*Free/P_li); #saturable binding in liver
+    R_liunbind = k_off_li*A_lib;   # rate of protein unbinding in liver
+    
+    R_blloss = k_loss*(single_blood ? C_bl : C_ven);  # rate of direct blood loss
+    
+    # Metabolic rates
+    R_met_sat_lu = V_max_lu_t * (C_lu/P_lu) / (K_m_lu + (C_lu/P_lu)); #saturable metabolism in lung
+    R_met_1st_lu = k_met_lu * (C_lu/P_lu) * V_lu; #1st order metabolism in lung
+    R_met_sat_li = V_max_li_t * (C_li/P_li) / (K_m_li + (C_li/P_li)); #saturable metabolism in liver
+    R_met_1st_li = k_met_li * (C_li/P_li) * V_li; #1st order metabolism in liver
+    R_met_sat_om = V_max_om_t * (C_om/P_om) / (K_m_om + (C_om/P_om)); # saturable metabolism in other metabolizing tissues
+    R_met_1st_om = k_met_om * (C_om/P_om) * V_om; #1st order metabolism in other metabolizing tissues
+
+    # Metabolizing enzyme loss rates
+    R_enz_loss_lu = k_enz_loss * (V_max_lu_t / V_lu) * R_met_sat_lu;
+    R_enz_loss_li = k_enz_loss * (V_max_li_t / V_li) * R_met_sat_li;	
+    R_enz_loss_om = k_enz_loss * (V_max_om_t / V_om) * R_met_sat_om;
+
+    # Inhalation rates
+    R_inh = Q_p*F_inh*C_inh;  #Rate chemical is inhaled
+    R_exh = Q_p*(GE_ss ? C_pulv : C_lu/P_lu)/P_B; #Rate chemical is exhaled
+    R_ch_loss = KL*A_ch; #Rate chemical is lost from the chamber
+    
+    # Blood flow rates
+    R_Qgi_in = Free*Q_gi*C_art;
+    R_Qgi_out = Free*Q_gi*C_gi/P_gi;
+    
+    R_Qli_in = Free*Q_li*C_art;
+    R_Qli_out = Free*(Q_li+Q_gi)*C_li/P_li;
+    
+    R_Qki_in = Free*Q_ki*C_art;
+    R_Qki_out = Free*Q_ki*C_ki/P_ki;
+    
+    R_Qtc1_in = Free*Q_tc1*C_art;
+    R_Qtc1_out = Free*Q_tc1*C_tc1/P_tc1;
+
+    R_Qtc2_in = Free*Q_tc2*C_art;
+    R_Qtc2_out = Free*Q_tc2*C_tc2/P_tc2;
+
+    R_Qtc3_in = Free*Q_tc3*C_art;
+    R_Qtc3_out = Free*Q_tc3*C_tc3/P_tc3;
+
+    R_Qtc4_in = Free*Q_tc4*C_art;
+    R_Qtc4_out = Free*Q_tc4*C_tc4/P_tc4;
+
+    R_Qtc5_in = Free*Q_tc5*C_art;
+    R_Qtc5_out = Free*Q_tc5*C_tc5/P_tc5;
+    
+    R_Qom_in = Free*Q_om*C_art;
+    R_Qom_out = Free*Q_om*C_om/P_om;
+
+    R_Qrb_in = Free*Q_rb*C_art;
+    R_Qrb_out = Free*Q_rb*C_rb/P_rb;
+
+    # Mass balance.
+    A_body = A_glumen + A_bl + A_ven + A_art + A_lu + A_gi + A_li + A_ki + A_fil
+        + A_ust + A_fst + A_tc1 + A_tc2 + A_tc3 + A_tc4 + A_tc5 + A_om + A_rb 
+        + A_lib;
+    A_out = A_urine + A_fecal + A_loss + A_exh + A_met_sat + A_met_1st;
+    A_bal = A_in - A_body - A_out;
+    
+    # Flow balance check.
+    Q_body = Q_gi + Q_li + Q_ki + Q_tc1 + Q_tc2 + Q_tc3 + Q_tc4 + Q_tc5 + Q_om 
+        + Q_rb;
+    Q_bal = Q_cardiac - Q_body;
+   
+    # Q_cardiac/Q_body - 1 : relative value. Q: what value should 
+    # trigger a concern/warning? numerical precision result, otherwise error.
+    # could have a function that outputs a warning if it's outside certain
+    # bounds.
+    Q_relative = Q_cardiac/Q_body - 1;
+
+    # Total volume check.
+    # Set compartment volumes as fraction of total body volume
+    V_total_bl_value = ( single_blood ? V_bl : ( (1-venous_ss)*V_ven + (1-arterial_ss)*V_art) );
+    V_lu_value = (exist_lung ? V_lu : 0);
+    V_ki_value = (Q_kic ? V_ki : 0);
+    V_fil_value = (k_GFR ? V_fil : 0);
+    V_li_value = (Q_lic ? V_li : 0); 
+    V_gi_value = (Q_gic ? V_gi : 0);
+    V_tc1_value = (Q_tc1c ? V_tc1 : 0);
+    V_tc2_value = (Q_tc2c ? V_tc2 : 0);
+    V_tc3_value = (Q_tc3c ? V_tc3 : 0);
+    V_tc4_value = (Q_tc4c ? V_tc4 : 0);
+    V_tc5_value = (Q_tc5c ? V_tc5 : 0);
+    V_om_value = (Q_omc ? V_om : 0);
+    V_rb_value = (Q_rbc ? V_rb : 0);
+    
+    total_volume_frac = (V_total_bl_value + V_lu_value
+        + V_ki_value + V_fil_value + V_li_value + V_gi_value + V_tc1_value
+        + V_tc2_value + V_tc3_value + V_tc4_value + V_tc5_value + V_om_value 
+        + V_rb_value)/BW_out;
+        
+    
+    # Time rates of change of amounts (ODEs).
+    
+    # Blood - single compartment
+    dt(A_bl) = (single_blood ? R_Qli_out + R_Qki_out + R_Qtc1_out + R_Qtc2_out 
+        + R_Qtc3_out + R_Qtc4_out + R_Qtc5_out + R_Qom_out + R_Qrb_out 
+        - R_Qli_in - R_Qki_in - R_Qgi_in - R_Qtc1_in - R_Qtc2_in - R_Qtc3_in 
+        - R_Qtc4_in - R_Qtc5_in - R_Qom_in - R_Qrb_in - R_artfil + R_IV 
+        - R_venust - R_blloss : 0.0);
+    dt(AUC_bl) = C_bl;
+    dt(A_loss) = R_blloss;
+
+    # Venous blood
+    dt(A_ven) = (1-single_blood)*(venous_ss ? 0.0 : R_Qli_out + R_Qki_out + R_Qtc1_out 
+        + R_Qtc2_out + R_Qtc3_out + R_Qtc4_out + R_Qtc5_out + R_Qom_out 
+        + R_Qrb_out + R_IV + Q_cardiac*(1-Free)*C_art - Q_cardiac*C_ven - R_venust - R_blloss);
+    dt(AUC_ven) = C_ven;
+    
+    # Arterial blood (Arteries leaving the lungs)
+    dt(A_art) = (1-single_blood)*(arterial_ss ? 0.0 : Q_cardiac*Free*C_art_in + Q_cardiac*(1-Free)*C_ven - Q_cardiac*C_art - R_artfil);
+    dt(AUC_art) = C_art;
+    
+    # Ambient air concentration
+    dt(Conc) = 0;
+    
+    # Cardiac output coefficient
+    dt(Q_cc) = 0;
+
+    # Amount in closed chamber
+    dt(A_ch) = (V_ch ? NCH*(R_exh - R_inh) - R_ch_loss : 0.0);
+    
+    # Cumulative amount exhaled
+    dt(A_exh) = R_exh;
+    
+    # Amount in lung tissue (mg/h).
+    dt(A_lu) = exist_lung*( ( GE_ss ? Q_cardiac * Free*(C_pulv - C_lu/P_lu) : R_inh - R_exh + Q_cardiac * Free*(C_ven - C_lu/P_lu) ) - R_met_sat_lu - R_met_1st_lu );
+    dt(AUC_lu) = C_lu;
+    
+    # Liver and GI tract
+    dt(A_glumen) = R_oral - R_glgi - R_glli - R_glfst;
+    dt(A_gi) = R_Qgi_in - R_Qgi_out - R_gifst + R_glgi - R_gili;
+    dt(AUC_gi) = C_gi;
+    dt(A_li) = R_Qli_in + R_Qgi_out - R_Qli_out
+        - R_biliary + R_glli + R_gili + R_0bgli - R_met_sat_li - R_met_1st_li
+        - R_libind + R_liunbind;
+    dt(AUC_li) = C_li;
+    dt(A_fst) = R_biliary + R_glfst + R_gifst - R_feces;
+    dt(A_fecal) = R_feces;
+    dt(A_lib) = R_libind - R_liunbind;
+    
+    # Kidney and filtrate
+    dt(A_ki) = R_Qki_in - R_Qki_out + R_reabs;
+    dt(AUC_ki) = C_ki;
+    dt(A_fil) = R_artfil - R_reabs - R_filust;
+    dt(A_ust) = R_filust + R_venust - R_urine;
+    dt(A_urine) = R_urine;
+    
+    # Generic Tissue Compartments
+    dt(A_tc1) = R_Qtc1_in - R_Qtc1_out;
+    dt(AUC_tc1) = C_tc1;
+    dt(A_tc2) = R_Qtc2_in - R_Qtc2_out;
+    dt(AUC_tc2) = C_tc2;
+    dt(A_tc3) = R_Qtc3_in - R_Qtc3_out;
+    dt(AUC_tc3) = C_tc3;
+    dt(A_tc4) = R_Qtc4_in - R_Qtc4_out;
+    dt(AUC_tc4) = C_tc4;
+    dt(A_tc5) = R_Qtc5_in - R_Qtc5_out;
+    dt(AUC_tc5) = C_tc5;
+    
+    # Other Metabolized Tissues
+    dt(A_om) = R_Qom_in - R_Qom_out - R_met_sat_om - R_met_1st_om;
+    dt(AUC_om) = C_om;
+    
+    # Time dependent maximum metabolic rates
+    dt(V_max_lu_t) = k_enz_resyn * (V_max_lu - V_max_lu_t) - R_enz_loss_lu;
+    dt(V_max_li_t) = k_enz_resyn * (V_max_li - V_max_li_t) - R_enz_loss_li;
+    dt(V_max_om_t) = k_enz_resyn * (V_max_om - V_max_om_t) - R_enz_loss_om; 
+    
+    # Rest of Body
+    dt(A_rb) = R_Qrb_in - R_Qrb_out;
+    dt(AUC_rb) = C_rb;
+    
+    # Rate of change of cumulative amount metabolized in saturable pathway (mg/h).
+    dt(A_met_sat_li) = R_met_sat_li;
+    dt(A_met_sat_om) = R_met_sat_om;
+    dt(A_met_sat_lu) = R_met_sat_lu;
+    dt(A_met_sat) = R_met_sat_li + R_met_sat_om + R_met_sat_lu;
+
+    # Rate of change of cumulative amount metabolized in 1st order pathway (mg/h).
+    dt(A_met_1st_li) = R_met_1st_li;
+    dt(A_met_1st_lu) = R_met_1st_lu;
+    dt(A_met_1st_om) = R_met_1st_om;
+    dt(A_met_1st) = R_met_1st_li + R_met_1st_lu + R_met_1st_om;
+
+    # Time rate of change of intravenous dose.
+    dt(R_IV) = 0;
+    
+    # Time rate of change of continuous oral dose.
+    dt(R_oral) = 0;
+    
+    # Time rate of change of cumulative amount that has entered organism.
+    dt(A_in) = R_IV + R_oral + R_inh + R_0bgli;
+    
+}
+# End of DYNAMICS.
+#------------------------------------------------------------------------------
+
+
+End.

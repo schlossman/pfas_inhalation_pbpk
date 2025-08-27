@@ -1,0 +1,205 @@
+---
+title: "PBPK Model Template Equations"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This document provides a listing of all the model equations in the PBPK model template.
+
+Abbreviation | Meaning
+----------   | ----------
+$A_x$ | Amount in compartment $x$
+$Q_x$ | Blood flow rate through compartment $x$
+$C_x$ | Concentration in compartment $x$
+$P_x$ | Tissue $x$ to blood partition coefficient
+
+Abbreviation | Compartment
+----------   | ----------
+ven | Venous blood
+pulv | Pulmonary vein
+lu | lung
+in/art | Entering arterial blood
+art | Arterial blood
+bl | Total blood
+glumen | GI lumen (Stomach)
+gi | GI tissue
+li | Liver
+bind/li | Bound in liver
+fst | Fecal storage
+fecal | Feces
+ki | Kidney
+fil | Kidney filtrate
+ust | Urinary storage (Bladder)
+urine | Urine
+tc1 | Tissue compartment 1
+tc2 | Tissue compartment 2
+tc3 | Tissue compartment 3
+tc4 | Tissue compartment 4
+tc5 | Tissue compartment 5
+om | Other metabolizing tissues
+rb | Rest of body
+conc | Ambient air concentration
+ch | Air in closed chamber
+exh | Exhaled
+loss | Direct loss from blood
+
+
+#### Blood and Gas Exchange Compartments
+\begin{align}
+\frac{d A_\text{bl}}{dt} &= 
+\begin{cases}
+0, \text{ if separate venous and arterial blood compartments} \\
+F_\text{free}\left( \left(Q_\text{li}+Q_\text{gi}\right)\frac{C_\text{li}}{P_\text{li}} + Q_\text{ki}\frac{C_\text{ki}}{P_\text{ki}} + Q_\text{tc1}\frac{C_\text{tc1}}{P_\text{tc1}} + Q_\text{tc2}\frac{C_\text{tc2}}{P_\text{tc2}} + Q_\text{tc3}\frac{C_\text{tc3}}{P_\text{tc3}} + Q_\text{tc4}\frac{C_\text{tc4}}{P_\text{tc4}} + Q_\text{tc5}\frac{C_\text{tc5}}{P_\text{tc5}} + Q_\text{om}\frac{C_\text{om}}{P_\text{om}} + Q_\text{rb}\frac{C_\text{rb}}{P_\text{rb}}\right) + R_\text{IV} - F_\text{free}C_\text{art}\left( Q_\text{li} + Q_\text{ki} + Q_\text{gi} + Q_\text{tc1} + Q_\text{tc2} + Q_\text{tc3} + Q_\text{tc4} + Q_\text{tc5} + Q_\text{om} + Q_\text{rb} \right) - F_\text{free}k_\text{GFR}C_\text{art} - k_\text{ust}^\text{ven}A_\text{bl} - k_\text{loss}C_\text{bl}, \text{ otherwise}
+\end{cases} \\ \\
+
+\frac{d A_\text{loss}}{dt} &= \begin{cases}
+k_\text{loss}C_\text{ven}, \text{ if separate venous and arterial blood compartments} \\
+ k_\text{loss}C_\text{bl}, \text{ otherwise}
+\end{cases} \\ \\
+ 
+
+\frac{d A_\text{ven}}{dt} &= 
+\begin{cases}
+0, \text{ if steady state approximation for venous blood} \\
+F_\text{free}\left( \left(Q_\text{li}+Q_\text{gi}\right)\frac{C_\text{li}}{P_\text{li}} + Q_\text{ki}\frac{C_\text{ki}}{P_\text{ki}} + Q_\text{tc1}\frac{C_\text{tc1}}{P_\text{tc1}} + Q_\text{tc2}\frac{C_\text{tc2}}{P_\text{tc2}} + Q_\text{tc3}\frac{C_\text{tc3}}{P_\text{tc3}} + Q_\text{tc4}\frac{C_\text{tc4}}{P_\text{tc4}} + Q_\text{tc5}\frac{C_\text{tc5}}{P_\text{tc5}} + Q_\text{om}\frac{C_\text{om}}{P_\text{om}} + Q_\text{rb}\frac{C_\text{rb}}{P_\text{rb}}\right) + R_\text{IV} - Q_\text{cardiac}C_\text{ven} - k_\text{ust}^\text{ven}A_\text{ven} - k_\text{loss}C_\text{ven}, \text{ otherwise}
+\end{cases} \\ \\
+
+C_\text{ven} &= 
+\begin{cases}
+\frac{1}{Q_\text{cardiac}}\left(F_\text{free}\left( \left(Q_\text{li}+Q_\text{gi}\right)\frac{C_\text{li}}{P_\text{li}} + Q_\text{ki}\frac{C_\text{ki}}{P_\text{ki}} + Q_\text{tc1}\frac{C_\text{tc1}}{P_\text{tc1}} + Q_\text{tc2}\frac{C_\text{tc2}}{P_\text{tc2}} + Q_\text{tc3}\frac{C_\text{tc3}}{P_\text{tc3}} + Q_\text{tc4}\frac{C_\text{tc4}}{P_\text{tc4}} + Q_\text{tc5}\frac{C_\text{tc5}}{P_\text{tc5}} + Q_\text{om}\frac{C_\text{om}}{P_\text{om}} + Q_\text{rb}\frac{C_\text{rb}}{P_\text{rb}}\right) + R_\text{IV}\right), \text{ if steady state approximation for venous blood} \\
+ \frac{A_\text{ven}}{V_\text{ven}}, \text{ otherwise}
+\end{cases} \\ \\
+
+C_\text{pulv} &=
+\begin{cases}
+\frac{Q_\text{p}F_\text{inh}C_\text{inh} + Q_\text{cardiac}C_\text{ven}}{\frac{Q_\text{p}}{P_\text{B}}+Q_\text{cardiac}}, \text{ if steady state approximation for gas exchange} \\
+0, \text{ otherwise}
+\end{cases} \\ \\
+
+\frac{d A_\text{lu}}{dt} &= 
+\begin{cases}
+Q_\text{cardiac}\left(C_\text{pulv} - \frac{C_\text{lu}}{P_\text{lu}}\right) - \frac{V_\text{max}^\text{lu}\frac{C_\text{lu}}{P_\text{lu}}}{K_\text{m}^\text{lu}+\frac{C_\text{lu}}{P_\text{lu}}} - k_\text{met}^\text{lu}V_\text{lu}\frac{C_\text{lu}}{P_\text{lu}}, \text{ if steady state approximation for gas exchange} \\
+Q_\text{p}F_\text{inh}C_\text{inh} - Q_\text{p}\frac{C_\text{lu}}{P_\text{lu}P_\text{B}} + Q_\text{cardiac}\left(C_\text{ven} - \frac{C_\text{lu}}{P_\text{lu}}\right) - \frac{V_\text{max}^\text{lu}\frac{C_\text{lu}}{P_\text{lu}}}{K_\text{m}^\text{lu}+\frac{C_\text{lu}}{P_\text{lu}}} - k_\text{met}^\text{lu}V_\text{lu}\frac{C_\text{lu}}{P_\text{lu}}, \text{ otherwise}
+\end{cases} \\ \\
+
+C_\text{art}^\text{in} &= 
+\begin{cases}
+\frac{C_\text{lu}}{P_\text{lu}}, \text{ if including lung compartment} \\
+C_\text{pulv}, \text{ otherwise}
+\end{cases} \\ \\
+
+\frac{d A_\text{art}}{dt} &=
+\begin{cases}
+0, \text{ if steady state approximation for arterial blood} \\
+Q_\text{cardiac}\left(C_\text{art}^\text{in} - C_\text{art}^\text{comp}\right), \text{ otherwise}
+\end{cases} \\ \\
+
+C_\text{art}^\text{comp} &= 
+\begin{cases}
+C_\text{art}^\text{in}, \text{ if steady state approximation for arterial blood} \\
+\frac{A_\text{art}}{V_\text{art}}, \text{ otherwise}
+\end{cases} \\ \\
+
+C_\text{art} &=
+\begin{cases}
+\frac{A_\text{bl}}{V_\text{bl}}, \text{ if using single, total blood compartment} \\
+C_\text{art}^\text{comp}, \text{ otherwise}
+\end{cases} \\ \\
+
+\frac{d A_\text{conc}}{dt} &= 0 \\ \\
+
+\frac{d A_\text{ch}}{dt} &=
+\begin{cases}
+N_\text{ch}\left( R_\text{exh} - Q_\text{p}F_\text{inh}C_\text{inh} \right) - k_\text{loss}^\text{ch}*A_\text{ch}, \text{ if using a closed chamber} \\
+0, \text{ otherwise}
+\end{cases} \\ \\
+
+R_\text{exh} &=
+\begin{cases}
+Q_\text{p}\frac{C_\text{pulv}}{P_\text{B}}, \text{ if steady state approximation for gas exchange} \\
+Q_\text{p}\frac{C_\text{lu}}{P_\text{lu}P_\text{B}}, \text{ otherwise}
+\end{cases} \\ \\
+
+\frac{d A_\text{exh}}{dt} &= R_\text{exh} \\ \\
+
+
+\end{align}
+
+
+#### Cardiac Output based on depression factor
+\begin{align}
+D_\text{cardiac} &= 1 + \left( \frac{C_\text{rb}}{P_\text{rb}K_\text{inhib}} \right)^{n_\text{cardiac}} \\ \\
+
+Q_\text{cardiac} &= \frac{Q_{\text{cardiac}_0}}{D_\text{cardiac}}
+\end{align}
+
+#### GI Tract, Liver, and Fecal Compartments
+\begin{align}
+\frac{d A_\text{glumen}}{dt} &= -k_\text{abs}^\text{gi}A_\text{glumen} - \frac{1}{D_\text{cardiac}}k_\text{abs}^\text{li}A_\text{glumen} - k_\text{unabs}A_\text{glumen} \\ \\
+
+\frac{d A_\text{gi}}{dt} &= F_\text{free}Q_\text{gi}\left(C_\text{art} - \frac{C_\text{gi}}{P_\text{gi}}\right) + k_\text{abs}^\text{gi}A_\text{glumen} - \frac{1}{D_\text{cardiac}}k_\text{abs2}^\text{li}A_\text{gi} - k_\text{fst}A_\text{gi} \\ \\
+
+\frac{d A_\text{li}}{dt} &= F_\text{free}\left(Q_\text{li}C_\text{art} + Q_\text{gi}\frac{C_\text{gi}}{P_\text{gi}}  - \left(Q_\text{li}+Q_\text{gi}\right)\frac{C_\text{li}}{P_\text{li}}\right) + \frac{1}{D_\text{cardiac}}k_\text{abs}^\text{li}A_\text{glumen} + \frac{1}{D_\text{cardiac}}k_\text{abs2}^\text{li}A_\text{gi} + R_\text{0bg}^\text{li} -  \frac{V_\text{max}^\text{li}\frac{C_\text{li}}{P_\text{li}}}{K_\text{m}^\text{li}+\frac{C_\text{li}}{P_\text{li}}} - k_\text{met}^\text{li}V_\text{li}\frac{C_\text{li}}{P_\text{li}} - F_\text{free}k_\text{bile}\frac{A_\text{li}}{P_\text{li}} -\frac{V_\text{max}^\text{bind,li}\frac{F_\text{free}C_\text{li}}{P_\text{li}}}{K_\text{m}^\text{bind,li}+\frac{F_\text{free}C_\text{li}}{P_\text{li}}} + k_\text{off}^\text{li}A_\text{bind}^\text{li}  \\ \\
+
+\frac{d A_\text{bind}^\text{li}}{dt} &= \frac{V_\text{max}^\text{bind,li}\frac{F_\text{free}C_\text{li}}{P_\text{li}}}{K_\text{m}^\text{bind,li}+\frac{F_\text{free}C_\text{li}}{P_\text{li}}} - k_\text{off}^\text{li}A_\text{bind}^\text{li} \\ \\
+
+\frac{d A_\text{fst}}{dt} &= k_\text{unabs}A_\text{glumen} + k_\text{fst}A_\text{gi} + F_\text{free}k_\text{bile}\frac{A_\text{li}}{P_\text{li}} - k_\text{feces}A_\text{fst} \\ \\
+
+\frac{d A_\text{fecal}}{dt} &= k_\text{feces}A_\text{fst}
+\end{align}
+
+
+
+#### Kidney and Urinary Compartments
+\begin{align}
+\frac{d A_\text{ki}}{dt} &= F_\text{free}Q_\text{ki}\left(C_\text{art} - \frac{C_\text{ki}}{P_\text{ki}}\right) + \frac{V_\text{max}^\text{reabs}C_\text{fil}}{K_\text{m}^\text{reabs}+C_\text{fil}} \\ \\
+
+\frac{d A_\text{fil}}{dt} &= F_\text{free}k_\text{GFR}C_\text{art} - \frac{V_\text{max}^\text{reabs}C_\text{fil}}{K_\text{m}^\text{reabs}+C_\text{fil}} - k_\text{ust}^\text{fil}A_\text{fil} \\ \\
+
+\frac{d A_\text{ust}}{dt} &= 
+\begin{cases}
+k_\text{ust}^\text{fil}A_\text{fil} + k_\text{ust}^\text{ven}A_\text{ven} - k_\text{urine}A_\text{ust}, \text{ if separate venous and arterial blood compartments} \\
+k_\text{ust}^\text{fil}A_\text{fil} + k_\text{ust}^\text{ven}A_\text{bl} - k_\text{urine}A_\text{ust} , \text{ otherwise}
+\end{cases} \\ \\
+
+\frac{d A_\text{urine}}{dt} &= k_\text{urine}A_\text{ust}
+\end{align}
+
+
+#### Generic Compartments
+
+\begin{align}
+\frac{d A_\text{tc1}}{dt} &= F_\text{free}Q_\text{tc1}\left(C_\text{art} - \frac{C_\text{tc1}}{P_\text{tc1}}\right) \\ \\
+
+\frac{d A_\text{tc2}}{dt} &= F_\text{free}Q_\text{tc2}\left(C_\text{art} - \frac{C_\text{tc2}}{P_\text{tc2}}\right) \\ \\
+
+\frac{d A_\text{tc3}}{dt} &= F_\text{free}Q_\text{tc3}\left(C_\text{art} - \frac{C_\text{tc3}}{P_\text{tc3}}\right) \\ \\
+
+\frac{d A_\text{tc4}}{dt} &= F_\text{free}Q_\text{tc4}\left(C_\text{art} - \frac{C_\text{tc4}}{P_\text{tc4}}\right) \\ \\
+
+\frac{d A_\text{tc5}}{dt} &= F_\text{free}Q_\text{tc5}\left(C_\text{art} - \frac{C_\text{tc5}}{P_\text{tc5}}\right) \\ \\
+
+\frac{d A_\text{om}}{dt} &= F_\text{free}Q_\text{om}\left(C_\text{art} - \frac{C_\text{om}}{P_\text{om}}\right) - \frac{V_\text{max}^\text{om}\frac{C_\text{om}}{P_\text{om}}}{K_\text{m}^\text{om}+\frac{C_\text{om}}{P_\text{om}}} - k_\text{met}^\text{om}V_\text{om}\frac{C_\text{om}}{P_\text{om}}
+\end{align}
+
+
+#### Rest of Body Compartment
+\begin{equation}
+\frac{d A_\text{rb}}{dt} = F_\text{free}Q_\text{rb}\left(C_\text{art} - \frac{C_\text{rb}}{P_\text{rb}}\right)
+\end{equation}
+
+
+
+#### Time-dependent Metabolic Rates
+\begin{align}
+\frac{d V_\text{max}^\text{lu}}{dt} &= k_\text{ERR}\left( V_{\text{max}_\text{setpt}}^\text{lu} - V_\text{max}^\text{lu} \right) - k_\text{loss}^\text{enz}\frac{V_\text{max}^\text{lu}}{V_\text{lu}}\frac{V_\text{max}^\text{lu}\frac{C_\text{lu}}{P_\text{lu}}}{K_\text{m}^\text{lu}+\frac{C_\text{lu}}{P_\text{lu}}} \\ \\
+
+\frac{d V_\text{max}^\text{li}}{dt} &= k_\text{ERR}\left( V_{\text{max}_\text{setpt}}^\text{li} - V_\text{max}^\text{li} \right) - k_\text{loss}^\text{enz}\frac{V_\text{max}^\text{li}}{V_\text{li}}\frac{V_\text{max}^\text{li}\frac{C_\text{li}}{P_\text{li}}}{K_\text{m}^\text{li}+\frac{C_\text{li}}{P_\text{li}}} \\ \\
+
+\frac{d V_\text{max}^\text{om}}{dt} &= k_\text{ERR}\left( V_{\text{max}_\text{setpt}}^\text{om} - V_\text{max}^\text{om} \right) - k_\text{loss}^\text{enz}\frac{V_\text{max}^\text{om}}{V_\text{om}}\frac{V_\text{max}^\text{om}\frac{C_\text{om}}{P_\text{om}}}{K_\text{m}^\text{om}+\frac{C_\text{om}}{P_\text{om}}}
+\end{align}
+
+

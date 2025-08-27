@@ -1,0 +1,33 @@
+---
+title: "PBPK Template Code Style Guidelines"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In the PBPK_template.model file, please follow the following guidelines:
+
+
+1. Parameter naming conventions
+    a. First order rate constants: k_[description] where “description” is a short description of the rate being modeled.
+    b. Maximum rate constants in saturable pathways: V_max_[description] where description is a short description of the saturable process.
+    c. Affinity constants in saturable pathways: K_m_[description] where description is a short description of the saturable process, using the same description of the corresponding V_max.
+    d. Compartment specific parameters use a suffix that notes the name of the compartment using a 2-3 letter abbreviation in lower case, typically composed of the first 2-3 letters of the compartment name.
+        i. Blood flows: Q_[compartment]
+        ii. Volumes: V_[compartment]
+        iii. Partition Coefficients: P_[compartment]
+
+2. Rates should be defined as separate variables to then be used in the mass balance (ODE) equations.
+    a. Naming convention for non-blood flow rates: R_[description]
+    b. Naming convention for blood flow rates: R_Q[compartment]_[in/out]
+
+3. State variables
+    a. Naming convention for amounts: A_[description] where description is a short description of the compartment or where the amount is being measured.
+        i. Compartments are noted using a 2-3 letter abbreviation in lower case.  Typically, use the first 2-3 letters of the compartment. Eg. liver:li, lung: lu, gi tract:gi, filtrate:fil
+
+
+Note, “outputs” must be defined before they are used so all outputs should be calculated prior to state variables.
+
+

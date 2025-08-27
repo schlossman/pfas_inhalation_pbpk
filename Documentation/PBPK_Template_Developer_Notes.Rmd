@@ -1,0 +1,16 @@
+---
+title: "PBPK Template Developer Notes"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+- In the DYNAMICS section of the .model file, outputs must be defined before they are used. All equations for outputs should appear before the ODEs. When adding a new output equation, pay attention to the order of appearance to ensure that any other outputs used in the equation appear before the new output equation.
+
+- Define parameters using floating point numbers not arithmetic operations.
+
+- In the .model file, declare all parameters, both fixed and calculated.  Calculated parameters can then be set in the initialize block.
+
+- When adding new state variables or parameters used in the calculation of initial conditions for state variables, check that the endogenous rate of production calculation (setting the initial states when this occurs) performs correctly, ie. check if adjustments need to be made to the calculation of the initial states of a simulations that includes the endogenous production term.

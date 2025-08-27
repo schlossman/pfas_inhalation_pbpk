@@ -1,0 +1,293 @@
+---
+title: "PBPK Template Description of Functions"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## run_template_model.R
+
+This R source code file includes functions to run the PBPK model template. It 
+requires the R libraries **readxl** (for importing parameter values) and 
+**deSolve** (for methods of solving ordinary differential equations) and the 
+R file **RMCSim.R**. The included functions are:
+
+
+### **unload.model**
+
+##### Description 
+
+Unloads the model .dll file `mName`, if it is currently loaded.
+
+##### Usage
+
+`unload.model(mName)`
+
+Argument | Definition 
+:--|:-------
+mName | String containing the name of the model 
+
+
+### **PBPK_compile**
+
+##### Description 
+
+Uses the `compile_model(mName)` function in **RMCSim.R** to translate the
+  MCSim .model file given in `mName` into the C language (".c" file) and 
+  compile, creating a C object code (.o) file and a dynamic linked library
+  (".dll") file. It also creates an R script ("_inits.R") containing several R
+  functions used for initializing model states and parameters.
+
+##### Usage
+
+`PBPK_compile(mName = "PBPK_template")`
+
+Argument | Definition 
+:--|:-------
+mName | String containing the name of the model 
+  
+
+### **PBPK_run**
+
+##### Description 
+
+Runs a simulation using the compiled MCSim model `mName` using model and exposure parameters as described in the given spreadsheets.
+
+##### Usage
+
+`PBPK_run(mName = "PBPK_template", model.param.filename = NULL,`
+    `model.param.sheetname = NULL, exposure.param.filename = NULL,`
+    `exposure.param.sheetname = NULL, data.times = NULL, adj.parms = NULL,`
+    `BW.table = NULL, Freef.table = NULL, water.dose.frac = NULL,` 
+    `load.and.unload = TRUE, rtol=1e-8,atol=1e-8, cust_expo = NULL)`
+
+Argument | Definition 
+:--|:-------
+ mName | String containing the name of the model 
+ model.param.filename | String containing the name of the Excel file containing the model parameter values
+ model.param.sheetname  | String containing the name of the sheet within the Excel file containing the model parameter values
+ exposure.param.filename | String containing the name of the Excel file containing the exposure parameter values  
+ exposure.param.sheetname  | String containing the name of the sheet within the Excel file containing the exposure parameter values
+ data.times | Vector of time points (h) at which to return the simulation output 
+ adj.parms | Vector of .model parameters to be adjusted (overwrites the values from the input parameter spreadsheets) Note, parameters must appear as parameters in the .model file and have units as defined in the .model file (same as the units of the output data frame).
+ BW.table | List with two elements: a vector of BWs (in kg) called BW and a vector of corresponding times (in h) called times 
+ Freef.table | List with two elements: a vector of values for the free fraction of chemical in plasma called Freef and a vector of corresponding times (in h) called times
+ water.dose.frac | Vector listing the fraction of dose ingested at each dosing event for bolus water dosing (should sum to 1)
+ load.and.unload | A boolean. When true, the model will automatically be loaded at 
+the start of this function and unloaded at the end of this function. Set to FALSE 
+to stop automatically loading and unloading the model (in which case the model 
+must be loaded prior to running this function).
+ cust_expo | A data frame that allows the user to set up a custom exposure pattern. 
+Note, this exposure pattern is applied in addition to any exposures defined in  
+the exposure parameter spreadsheet. It is var, time, value, and method. See the 
+documentation for the R package deSolve for more information.
+
+
+##### Value
+
+This function returns a data frame containing all state variables and output
+  variables from a simulation of the model `mName`. Values are given using 
+  standard units of (mg, L, h) except BW_out (kg).
+ 
+
+### **find_SS_PBPK_noDose**
+
+##### Description 
+
+For use with background rates of production, finds the steady state values of all model state variables.
+
+##### Usage
+ 
+`find_SS_PBPK_noDose(mName, parms, Forc)`
+
+Argument | Definition 
+:--|:-------
+ mName | String containing the name of the model 
+parms | Vector of model parameter values
+Forc | Data frame containing values for model time-dependent "input parameters": BW and free fraction in plasma (using the initial values for each as the value during the entire simulation)
+
+##### Value
+
+This function returns a vector containing the steady state values for each state variable in the model mName.
+
+
+### **compute_endog_rate**
+
+##### Description 
+
+For use with background rates of production, finds the background rate of production (assumed to be in the liver) necessary to have concentration c_data in venous blood at steady state.
+
+##### Usage
+ 
+`compute_endog_rate(c_data, mName, parms, Forc)`
+
+Argument | Definition 
+:--|:-------
+c_data | Numeric value of the background concentration in venous blood
+mName | String containing the name of the model 
+parms | Vector of model parameter values
+Forc | Data frame containing values for model time-dependent "input parameters": BW and free fraction in plasma (using the initial values for each as the value during the entire simulation)
+
+##### Value
+
+This function returns a numeric value equal to the rate of background production of chemical in the liver necessary to obtain the specified steady state concentration of chemical in the venous blood.
+
+
+### **endog_cost_fun**
+
+##### Description 
+
+For use with background rates of production, this is the cost function for the optimization used to determine the background rate of production (assumed to be in the liver) necessary to have concentration c_data in venous blood at steady state.
+
+##### Usage
+ 
+`endog_cost_fun(theta, mName, t_data, c_data,`
+`    Y0, parms, Forc, epsilon = 1.0e-12)`
+
+Argument | Definition 
+:--|:-------
+theta | Numeric value for the parameter to be optimized, i.e. the background rate of production in the liver
+mName | String containing the name of the model 
+t_data | Numeric value for the time at which to compute the steady state values
+c_data | Numeric value of the background concentration in venous blood
+Y0 | Vector of the initial states in the model
+parms | Vector of model parameter values
+Forc | Data frame containing values for model time-dependent "input parameters": BW and free fraction in plasma (using the initial values for each as the value during the entire simulation)
+epsilon | Numeric value used in the calculation of the relative error between the desired concentration in venous blood and the current value returned by the model at steady state
+
+##### Value
+
+This function returns the sum of the squared relative errors between the desired concentration in venous blood and the current value returned by the model at steady state.
+
+
+### **load.model.parameters**
+
+##### Description 
+
+Reads the model input parameters from the specified Excel spreadsheet and processes them for use in the PBPK_run function. The spreadsheets are assumed to be in a folder called "Inputs" in the current working directory.
+
+##### Usage
+ 
+`load.model.parameters(filename, sheetname = NULL, parms)`
+
+Argument | Definition 
+:--|:-------
+filename | String containing the name of the Excel file containing the model parameter values
+sheetname | String containing the name of the sheet within the Excel file containing the model parameter values
+parms | Vector of model parameter values
+
+##### Value
+
+This function returns a list containing model parameter information:
+
+Parameter | Description
+:--|:-------
+model_parms | Vector of model parameter values used in the .model file (parms)
+sim.days | Number of simulation days
+C.units | *This value is currently unused.* String containing the units to be used to plot concentrations of chemical
+A.units | *This value is currently unused.* String containing the units to be used to plot amounts of chemical
+species | *This value is currently unused.* String containing the name of the species being modeled
+sex | *This value is currently unused.* String containing the sex of the population being modeled
+chem | *This value is currently unused.* String containing the name of the chemical being modeled
+Free_constant | Character indicating whether the free fraction of chemical in plasma is constant. "Y" indicates yes, and "N" indicates no
+
+
+### **load.exposure.parameters**
+
+##### Description 
+
+Reads the exposure input parameters from the specified Excel spreadsheet and processes them for use in the PBPK_run function. The spreadsheets are assumed to be in a folder called "Inputs" in the current working directory.
+
+##### Usage
+ 
+`load.exposure.parameters(filename, sheetname = NULL, parms)`
+
+Argument | Definition 
+:--|:-------
+filename | String containing the name of the Excel file containing the exposure parameter values
+sheetname | String containing the name of the sheet within the Excel file containing the exposure parameter values
+parms | Vector of model parameter values
+
+##### Value
+
+This function returns a list containing exposure parameter information:
+
+Parameter | Description
+:--|:-------
+model_parms | Vector of model parameter values used in the .model file (parms)
+sim.days | Number of simulation days
+water.dose | Character indicating whether water dosing (periodic bolus oral dosing) is included. "Y" indicates yes, and "N" indicates no.
+inhal.dose | Character indicating whether inhalation dosing is included. "Y" indicates yes, and "N" indicates no
+exp.parms | Vector of exposure parameter values used to create exposure events for a given simulation
+water.equal | String indicating whether dose amounts for water dosing are equal during the day or unequal
+inh.stop.time | Time that a single inhalation exposure ends
+T_iv_infuse | Time that an iv infusion ends
+C_ven_SS | Concentration of chemical in venous blood at steady state
+BW_constant | Character indicating whether the body weight is constant. "Y" indicates yes, and "N" indicates no
+
+
+### **perc.diff**
+
+##### Description 
+
+Computes the percent error between a model and data relative to the data values, and returns a value of zero if the difference between the values is less than the specified tolerance:
+\[ E = 100*\left(\frac{\text{data}-\text{model}}{\text{data}}\right) \]
+
+##### Usage
+ 
+`perc.diff(model, data, tol=1e-6)`
+
+Argument | Definition 
+:--|:-------
+model | Value of the model
+data | Value of the data
+tol | Value of the error tolerance. If the difference between the model and the data is less than tol, a value of zero is returned
+
+##### Value
+
+This function returns the value of the percent error calculation.
+
+
+### **perc.diff.scale**
+
+##### Description 
+
+Computes the percent error between a model and data relative to the value of fig.scale:
+\[ E = 100*\left(\frac{\text{data}-\text{model}}{\text{fig.scale}}\right) \]
+
+##### Usage
+ 
+`perc.diff.scale(model, data, fig.scale)`
+
+Argument | Definition 
+:--|:-------
+model | Value of the model
+data | Value of the data
+fig.scale | Value to compute the difference between model and data relative to
+
+##### Value
+
+This function returns the value of the percent error calculation.
+
+
+### **perc.diff.calc**
+
+##### Description 
+
+Computes the percent error between a model and data relative to the average value of the model and the data:
+\[ E = 100*\left(\frac{\text{data}-\text{model}}{\text{(model + data)/2)}}\right) \]
+
+##### Usage
+ 
+`perc.diff.calc(model, data)`
+
+Argument | Definition 
+:--|:-------
+model | Value of the model
+data | Value of the data
+
+##### Value
+
+This function returns the value of the percent error calculation.

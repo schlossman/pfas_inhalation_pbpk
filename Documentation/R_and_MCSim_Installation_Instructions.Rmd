@@ -1,0 +1,23 @@
+---
+title: "&nbsp;"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### Installation of R and MCSim
+
+Dustin Kapraun, US EPA, 4/26/2019
+
+1)	Install R (https://cran.r-project.org). We recommend using the default installation directory, "C:\Program Files\R\". 
+
+2)	Install Rtools (https://cran.r-project.org/bin/windows/Rtools/). This should be installed in the default location, "C:\Rtools\". Note that installation of Rtools requires administrative privileges. The Rtools suite of tools includes a C compiler (gcc) that will be used to generate a DLL version of a given MCSim model that can be called by the R package "deSolve". NOTE: Users of ACSLX may experience issues after installing Rtools because a directory containing an alternate C compiler (gcc) will be added to the PATH environment variable. Changing the ordering of the directories listed in the PATH environment variable such that either the ACSLX or the Rtools directories are listed *first* (depending on which of these the user plans to run) should resolve any such problem. The relevant directories are listed in the *system* PATH environment variable (not the user-specific PATH environment variable), and administrative privileges are required to modify this PATH variable.
+
+3)	(Optional, but recommended.) Install Rstudio (https://www.rstudio.com). Rstudio includes a code editor and debugging and visualization tools.
+
+4)	From R or Rstudio, install the package "deSolve" (which provides methods for integrating ordinary differential equations). If using command line R, use the "install.packages" method. If using RGui, choose "Install package(s)..." from the "Packages" menu, then follow the instructions. If using Rstudio, choose "Install packages..." from the "Tools" menu, then follow the instructions.
+
+5)	Download essential files to build the "mod" utility of GNU MCSim. As stated on the MCSim website (https://www.gnu.org/software/mcsim/), "The basic tools needed to build and run GNU MCSim are not available to many users of Windows systems ... [but] R software when installed with its Rtools can compile and run GNU MCSim models." A compressed (ZIP) directory containing all necessary files and instructions can be found by following a link on the main page of the aforementioned website, or can be directly accessed here: https://www.gnu.org/software/mcsim/mcsim_under_R.zip . Examine the "README.txt" file in that directory, and follow instructions for "Option 1".
+
+6)	Modify your PATH environment variable so that the directory containing "mod.exe" (created in Step 5, above) is listed in your PATH. So, for example, if you uncompress the ZIP file from Step 5 to "C:\", you should include the directory "C:\MCSim_under_R\mod" in your PATH, as this directory will contain the "mod.exe" utility.
