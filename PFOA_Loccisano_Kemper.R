@@ -22,6 +22,8 @@ PFOA_BW_v_age <- function(age0=NULL, BW0=NULL, sex="male", BWdata="NTP_BW_SD.csv
   if (is.numeric(BW0)){
     if (BW0<d[1,sex]|BW0>max(d[,sex])) stop("Input BW0 is outside the range of BWdata being interpolated.")
     age0 = approx(x=d[1:22,sex],y=d$age[1:22],xout=BW0)$y
+    # Only data rows 1-22 used bc these correspond to ages 0 to > 10 months and
+    # BW does not increase continuously after that.
   }
   ages = c(age0,d$age[(d$age>age0)&(d$age<(age0+dur))],(age0+dur))
   BW = approx(x=d$age,y=d[,sex],xout=ages,rule=2)$y
@@ -65,7 +67,7 @@ PFOA.Loccisano.Kemper <- function(img.name = NULL, case=list(), colr=TRUE,
                            exposure.param.filename = "PFOA_template_parameters_Exposure.xlsx", 
                            exposure.param.sheetname = "MKemperOral25BW", BW.table=BW.table, 
                            data.times=data.times, adj.parms=case$adj_parms)
-  out.inc.data <- out.inc.data[-c(1), ] #remove the zero row that was added in PBPK_run()
+  out.inc.data <- out.inc.data[-1, ] #remove the zero row that was added in PBPK_run()
   perc <- perc.diff(model = out.inc.data$C_ven, data = Pdata[,2])
   # 
   #plot(data.times, perc, type = "p", xlab = "Time (h)", ylab = "% Difference")
