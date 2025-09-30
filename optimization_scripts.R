@@ -1,4 +1,4 @@
-# model scripts to perform model parameter optimizations, sensitivity analysis, 
+# model scripts to perform model parameter optimization, sensitivity analysis, 
 # etc.
 
 # Initial versions of functions copied from the run_template_model.R file
