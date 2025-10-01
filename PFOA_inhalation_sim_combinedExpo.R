@@ -64,22 +64,22 @@ pchs=c(1,2,6)
 labys=c(18,9,3.5)
 fils=c()
 for (i in 1:length(doses)) {
-  out <- PBPK_run(mName = "PBPK_template",
+  out <- PBPK_run(model = template,
                   model.param.filename = "PFOA_inh_template_parameters_Model.xlsx", 
                   model.param.sheetname = model.sheetname, 
                   exposure.param.filename = "PFOA_template_parameters_Exposure.xlsx", 
                   exposure.param.sheetname = paste0(exp.sheetname.head,doses[i]),
-                  data.times = times, rtol=rtol, atol=atol, adj.parms = case$adj_parms)
-  time1=out$time.hr
-  q1=out$Q_cc
+                  data.times=times, rtol=rtol, atol=atol, adj.parms=case$adj_parms)
+  time1=out[,"time"]
+  q1=out[,"Q_cc"]
   data = subset.data.frame(data.sing.exp, Dose==doses[i])
   if (i==1){
-    ymax = max(data$Plasma_Conc_Mean, out$C_ven)
+    ymax = max(data$Plasma_Conc_Mean, out[,"C_ven"])
     plot(1,1, type="n", xlab="Time (h)", ylab="Venous Blood Concentration (ug/mL)", 
          title=NULL, ylim=c(0,ymax), xlim = c(0,max(times)))
   }
   points(data$Time, data$Plasma_Conc_Mean, pch=pchs[i])
-  lines(out$time.hr, out$C_ven,lty=ltys[i])
+  lines(time1, out[,"C_ven"],lty=ltys[i])
   if (i==1) {
     text(17,labys[i],expression("25 mg/m"^3))
   } else if (i==2) {
@@ -87,33 +87,34 @@ for (i in 1:length(doses)) {
   } else {
     text(17,labys[i],expression("1 mg/m"^3))
   }
-  fils=cbind(fils,out$C_fil)
+  fils=cbind(fils,out[,"C_fil"])
 }
 
 # Repeat-dose data & sims
 data.rep.exp <- read.csv(file = paste0(data.loc, "Hinderliter_Dupont_Table8.csv"), header = TRUE, sep = ",")
 BW.table = PFOA_BW_v_age(BW0=0.29, sex="male", BWdata="NTP_BW_SD.csv", dur=26)
+rtimes = 0:(26*24)
 exp.sheetname.head = "inhal_6hr_" # Exposure sheet name header [for combined inhalation/oral simulation]
 #par(mar=c(2.7,3,0.75,0.2),mgp=c(1.8,0.7,0))
 par(mar=c(2.4,1.7,1.75,0.2))
 filr=c()
 for (i in 1:length(doses)) {
-  out <- PBPK_run(mName = "PBPK_template",
+  out <- PBPK_run(model = template, data.times = rtimes,
                   model.param.filename = "PFOA_inh_template_parameters_Model.xlsx", 
                   model.param.sheetname = model.sheetname, 
                   exposure.param.filename = "PFOA_template_parameters_Exposure.xlsx", 
                   exposure.param.sheetname = paste0(exp.sheetname.head,doses[i],"_repeat"),
-                  BW.table=BW.table, rtol=rtol, atol=atol, adj.parms = case$adj_parms)
+                  BW.table=BW.table, rtol=rtol, atol=atol, adj.parms=case$adj_parms)
   data = subset.data.frame(data.rep.exp, Dose==doses[i])
   if (i==1){
     #plot(out$time,out$R_oral,type="l")
     #par(mar=c(2.7,3,0.75,0.2),mgp=c(1.8,0.7,0))
     par(mar=c(2.4,1.7,1.75,0.2))
     ymax = max(data$Plasma_Conc_Mean,  80)#out$C_ven) #
-    plot(1,1, type="n", xlab="Time (h)", ylab=NA, title=NULL, ylim=c(0,ymax), xlim = c(0,max(out$time.hr)))
+    plot(1,1, type="n", xlab="Time (h)", ylab=NA, title=NULL, ylim=c(0,ymax), xlim = c(0,max(out[,"time"])))
   }
   points(data$Time, data$Plasma_Conc_Mean, pch=pchs[i])
-  lines(out$time.hr, out$C_ven,lty=ltys[i])
+  lines(out[,"time"], out[,"C_ven"],lty=ltys[i])
   if (i==1) {
     text(250,case$labysr[i],expression("25 mg/m"^3))
   } else if (i==2) {
@@ -121,7 +122,7 @@ for (i in 1:length(doses)) {
   } else {
     text(250,case$labysr[i],expression("1 mg/m"^3))
   }
-  filr=cbind(filr,out$C_fil)
+  filr=cbind(filr,out[,"C_fil"])
 }
 #plot(out$time,out$Q_cc,type="l")
 par(mfrow = c(1,1), oma = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), new = TRUE)
@@ -135,10 +136,10 @@ plot(time1, fils[,1], mgp=c(1.7,0.6,0), title = NULL, col="red",
 lines(time1, fils[,2],lty=3, col="red") 
 lines(time1, fils[,3],lty=2, col="red")
 
-plot(out$time.hr, filr[,1], mgp=c(1.7,0.6,0), title = NULL,
+plot(out$time, filr[,1], mgp=c(1.7,0.6,0), title = NULL,
      type = "l", xlab = "Time (hr)", ylab = NA, col="red")
-lines(out$time.hr, filr[,2],lty=3, col="red") 
-lines(out$time.hr, filr[,3],lty=2, col="red")
+lines(out$time, filr[,2],lty=3, col="red") 
+lines(out$time, filr[,3],lty=2, col="red")
 par(mfrow = c(1,1), oma = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), new = TRUE)
 plot(0, 0, type = "n", bty = "n", xaxt = "n", yaxt = "n")
 title(case$simtitle,line=-1.2)
