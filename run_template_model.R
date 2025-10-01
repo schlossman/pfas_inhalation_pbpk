@@ -52,7 +52,7 @@ update_vals <- function(p, np, stopifwarned=FALSE){
   return(p)
 }
 
-PBPK_run <- function(model=template, load.and.unload=TRUE, 
+PBPK_run <- function(model=template, load=TRUE, 
                      model.param.filename=NULL, model.param.sheetname=NULL, 
                      exposure.param.filename=NULL, exposure.param.sheetname=NULL, 
                      data.times=NULL, adj.parms=NULL, BW.table=NULL,
@@ -85,7 +85,7 @@ PBPK_run <- function(model=template, load.and.unload=TRUE,
   #     deSolve for more information.
   
   # Load the dll file unless user specifies not to do so
-  if (load.and.unload) model$loadModel()
+  if (load) model$loadModel()
   
   # Adjust default parameters by importing from given excel file
   mparms <- load.model.parameters(filename=model.param.filename,
@@ -125,14 +125,16 @@ PBPK_run <- function(model=template, load.and.unload=TRUE,
     BW_times = BW.table$times
     BW_out = BW.table$BW
     parms["BW"] = BW_out[1] #assumes that BW at time 0 is the first value of table
-    
   } else if (eoparms$BW_constant == "Y"){
     BW_times = c(0, max(times))
     BW_out = c(1,1)*parms["BW"]
   }
-  
+  BW_fnc <- approxfun(BW_times, BW_out, rule = 2)
+  # rule = 2 means to use value at the closest data extreme if outside the given time interval
+  # to use: BW_at_time.t <- BW_fnc(time.t)
+ 
   # Construct free fraction table
-  if (oparms$Free_constant){ # load.model.params now converts "Y" to 1, "N" to 0
+  if (mparms$Free_constant){ # load.model.params now converts "Y" to 1, "N" to 0
     Freef_times = c(0, max(times))
     Freef = c(1,1)*parms["F_free"]
   } else { # Assume oparms$Free_constant = 0 ~ "N"
@@ -148,18 +150,15 @@ PBPK_run <- function(model=template, load.and.unload=TRUE,
   
   # Start with null dosing data-frames
   df_dose <- df_dose_bol_oral <- df_dose_step_oral <- NULL
-  df_dose_per_inhal <- df_dose_step_inhal <- df_dose_IV = NULL
-  
+  df_dose_per_inhal <- df_dose_step_inhal <- df_dose_IV <- NULL
+
   # If exposure requires dose function, construct the input
   # For example: drinking water or periodic inhalation
   if(!is.null(names(exp_parms))){
     # if the dose is via drinking water, construct the input:
     if(eoparms$water.dose == "Y"){
       # Function to return linear interpolation of the BW at the given time
-      BW_fnc <- approxfun(BW_times, BW_out, rule = 2) 
-      # rule = 2 means to use value at the closest data extreme if outside the given time interval
-      # to use: BW_at_time.t <- BW_fnc(time.t)
-      nz = exp_parms[["n.doses_water"]]
+            nz = exp_parms[["n.doses_water"]]
       # Check that dose fraction vector is valid (and compute if equal doses during day).
       if (eoparms$water.equal == "equal"){
         # create the water.dose.frac vector with equal doses throughout the day
@@ -212,11 +211,12 @@ PBPK_run <- function(model=template, load.and.unload=TRUE,
     dose_per_event = c(parms[["Conc_init"]], 0)
     tz = c(0,24*eoparms$sim.days) # Default assumption: continuous exposure from time=0 to end of simulation
     if (!is.null(exp_parms$time.exp.starts)) tz[1] = exp_parms$time.exp.starts
+    if (!is.null(exp_parms$inh.stop.time))  tz[2] = tz[1] + exp_parms$inh.stop.time
     if (!is.null(exp_parms$length.exp.day))  tz[2] = tz[1] + exp_parms$length.exp.day
     # if the dose is via periodic inhalation (multi-day exposures), construct the time-sequence:
     if ("N.days.exp" %in% names(exp_parms)) {
       # Build a vector to contain the simulation times at which exposure changes.
-      days = 1:eparms$sim.days-1 # All days starting at zero
+      days = 1:eoparms$sim.days-1 # All days starting at zero
       hours <- 24*days[(days%%7)<exp_parms$N.days.exp] # Use remainder function to remove days of week after N.days.exp
       tz = as.vector(sort(c(hours+tz[1],hours+tz[2])))
     }
@@ -247,26 +247,30 @@ PBPK_run <- function(model=template, load.and.unload=TRUE,
   }
   
   # Continuous Oral Dose
-  if(!is.null(eparms$R_oral)){
+  if(!is.null(eoparms$R_oral)){
     # Convert rate of oral dose from mg/kg/d to mg/h:
-    Y0["R_oral"] = eparms$R_oral*parms[["BW"]]/24 
+    Y0["R_oral"] = eoparms$R_oral*parms[["BW"]]/24 
     if(!is.null(df_dose_per_inhal)) { 
       # If an inhalation dosing schedule was created (also), assume that oral
       # infusion occurs on the same schedule, use the inhalation frame.
-      df_dose_step_oral = subset.data.frame(df_dose_per_inhal,var=="Conc")
-      df_dose_step_oral$var <- "R_oral"
-      df_dose_step_oral$value[df_dose_step_oral$value>0] <- Y0["R_oral"]
-      } else { if (!is.null(eparms$T_oral_rate)) { 
-        df_dose_step_oral = data.frame(var="R_oral", time=eparms$T_oral_rate,
-                                       value=0, method="rep") }
+      step_oral = subset.data.frame(df_dose_per_inhal,var=="Conc")
+      step_oral$var <- "R_oral"
+      ons <- step_oral$value > 0
+      step_oral$value[ons] <- eoparms$R_oral*BW_fnc(step_oral$time[ons])/24
+      } else { if (!is.null(eoparms$T_oral_rate)) { 
+        step_oral = data.frame(var="R_oral", time=eoparms$T_oral_rate, value=0, 
+                               method="rep") }
       }
     }
     
   df_dose = rbind(df_dose_bol_oral, df_dose_per_inhal, df_dose_step_inhal, 
-                  df_dose_IV, df_dose_step_oral, cust_expo)
-  
+                  df_dose_IV, step_oral, cust_expo)
   # Sorted data frame.
-  if(!is.null(df_dose)) df_dose = df_dose[order(df_dose$time), ]
+  alltimes = data.times
+  if(!is.null(df_dose)) { 
+    df_dose = df_dose[order(df_dose$time), ]
+    alltimes =sort(unique(c(data.times,df_dose$time)))
+  }
   
   # Determine initial states for cases of endogenous production when given by a 
   # venous blood concentration at steady state.
@@ -280,9 +284,9 @@ PBPK_run <- function(model=template, load.and.unload=TRUE,
   Forc_SS <- list(cbind(times=c(0, tail(times,1)), BW_in=c(1,1)*parms["BW"]),
                   cbind(times=c(0, tail(times,1)), Free_in=c(1,1)*parms["F_free"]))
   
-  if (!is.null(eparms$C_ven_SS)) {
-    if (eparms$C_ven_SS > 0.0) {
-      model$parms["R_0bgli"] = compute_endog_rate(c_data=eparms$C_ven_SS, 
+  if (!is.null(eoparms$C_ven_SS)) {
+    if (eoparms$C_ven_SS > 0.0) {
+      model$parms["R_0bgli"] = compute_endog_rate(c_data=eoparms$C_ven_SS, 
                                                   model=model, Forc=Forc_SS)
       print(paste("Calculated Endogenous Production Rate:", parms["R_0bgli"]))
     }
@@ -297,18 +301,11 @@ PBPK_run <- function(model=template, load.and.unload=TRUE,
   }
   
   # Run simulation using the actual exposure information. (Assume units in mg/L)
-  out = model$runModel(times, forcings = Forc, event_list=list(data=df_dose),
+  out = model$runModel(times=alltimes, forcings = Forc, events=list(data=df_dose),
                   rtol=rtol, atol=atol)
-  out_df <- as.data.frame(out)
-  
-  # Only return simulation values at requested time points
-  out_df <- out_df[which(out_df$time %in% times),]
-  
-  out_df$time.days <- out_df$time/24  # Convert hours to days
-  out_df$time.hr <- out_df$time
-  
-  # Unload the dll file unless user specifies not to do so
-  if(load.and.unload == TRUE) unload.model(mName)
+    # Only return simulation values at requested time points
+  out_df <- as.data.frame(out[out[,"time"]%in%data.times,])
+  out_df[,"time.days"] <- out_df[,"time"]/24  # Convert hours to days
   return(out_df)
 }
 
