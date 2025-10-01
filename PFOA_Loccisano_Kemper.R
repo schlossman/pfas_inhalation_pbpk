@@ -37,7 +37,7 @@ PFOA.Loccisano.Kemper <- function(img.name = NULL, case=list(), colr=TRUE,
   # Figure 10: Loccisano 2012, Male rat, 25 mg/kg PFOA
   # Further below, simulations for 5 and 1 mg/kg PFOA 
   
-  case$adj_parms = c(case$adj_parms, Q_kic=0.141, Q_rbc=0.676) 
+  adj_parms = c(case$adj_parms, Q_kic=0.141, Q_rbc=0.676) 
       # Reset kidney/rbc flows to Loccisano 2012 values
   
   # Construct BW table
@@ -45,12 +45,12 @@ PFOA.Loccisano.Kemper <- function(img.name = NULL, case=list(), colr=TRUE,
   BW.table = PFOA_BW_v_age(BW0=BW0, sex="male", BWdata="NTP_BW_SD.csv", dur=26)
     # Uses reported growth data from NTP for SD rats, but transposed to match
     # the reported initial BW.
-  
+  times = 0:(26*24)
   out <- PBPK_run(model.param.filename = "PFOA_inh_template_parameters_Model.xlsx", 
                   model.param.sheetname = model.sheetname, 
                   exposure.param.filename = "PFOA_template_parameters_Exposure.xlsx", 
-                  exposure.param.sheetname = "MKemperOral25BW", # dose = 25 mg/kg
-                  BW.table = BW.table, adj.parms = case$adj_parms)
+                  exposure.param.sheetname = "MKemperOral25BW", # dose = 25 mg/kg,
+                  data.times=times, BW.table=BW.table, adj.parms=case$adj_parms)
 
   plot.Kemper.Loccisano(out, route="gavage", dose=25.0, sex="Male", 
                         img.name=img.name, colr=colr, detail=case$simtitle)
@@ -66,7 +66,7 @@ PFOA.Loccisano.Kemper <- function(img.name = NULL, case=list(), colr=TRUE,
                            model.param.sheetname = model.sheetname, 
                            exposure.param.filename = "PFOA_template_parameters_Exposure.xlsx", 
                            exposure.param.sheetname = "MKemperOral25BW", BW.table=BW.table, 
-                           data.times=data.times, adj.parms=case$adj_parms)
+                           data.times=c(0,data.times), adj.parms=case$adj_parms)
   out.inc.data <- out.inc.data[-1, ] #remove the zero row that was added in PBPK_run()
   perc <- perc.diff(model = out.inc.data$C_ven, data = Pdata[,2])
   # 
@@ -78,34 +78,32 @@ PFOA.Loccisano.Kemper <- function(img.name = NULL, case=list(), colr=TRUE,
   
   # Construct BW table
   BW0 = 0.1976 # From Table 9 of Kemper report for male rats @ 5 mg/kg
-  BW.table = PFOA_BW_v_age(BW0=BW0, sex="male", BWdata="NTP_BW_SD.csv", dur=21)
-  
+  BW.table = PFOA_BW_v_age(BW0=BW0, sex="male", BWdata="NTP_BW_SD.csv", dur=26)
   out <- PBPK_run(model.param.filename = "PFOA_inh_template_parameters_Model.xlsx", 
                   model.param.sheetname = model.sheetname, 
                   exposure.param.filename = "PFOA_template_parameters_Exposure.xlsx", 
                   exposure.param.sheetname = "MKemperOral5BW",  # 5 mg/kg dose
-                  BW.table=BW.table, adj.parms=case$adj_parms)
+                  data.times=times, BW.table=BW.table, adj.parms=case$adj_parms)
   
   #plot.Kemper.Loccisano(out, route="gavage", dose=5.0, sex="Male", 
   #                      img.name=img.name, colr=colr)
   
   BW0 = 0.2334 # From Table 9 of Kemper report for male rats @ 1 mg/kg
-  BW.table = PFOA_BW_v_age(BW0=BW0, sex="male", BWdata="NTP_BW_SD.csv", dur=21)
-  
+  BW.table = PFOA_BW_v_age(BW0=BW0, sex="male", BWdata="NTP_BW_SD.csv", dur=26)
   out2 <- PBPK_run(model.param.filename = "PFOA_inh_template_parameters_Model.xlsx", 
                    model.param.sheetname = model.sheetname,
                    exposure.param.filename = "PFOA_template_parameters_Exposure.xlsx", 
                    exposure.param.sheetname = "MKemperOral1BW",  # 1 mg/kg dose 
-                   BW.table = BW.table, adj.parms=case$adj_parms)
+                   data.times=times, BW.table=BW.table, adj.parms=case$adj_parms)
   
   plot.Kemper.Loccisano(out, route="gavage", dose=5, sex="Male", detail=case$simtitle, 
                         img.name=img.name, colr=colr, out2=out2, dose2=1.0)
   
   par(old.par)
-  plot(out$time.hr, fil, col="red", type="l", ylab = "Concentraton (ug/mL)",
+  plot(times, fil, col="red", type="l", ylab = "Concentraton (ug/mL)",
        xlab = "Time (h)")
-  lines(out$time.hr, out$C_fil, col="red", lty=3)
-  lines(out$time.hr, out2$C_fil, col="red", lty=2)
+  lines(times, out$C_fil, col="red", lty=3)
+  lines(times, out2$C_fil, col="red", lty=2)
   title("Renal filtrate concentration predictions")
   title(case$simtitle, line=-1)
 }
@@ -163,7 +161,7 @@ plot.Kemper.Loccisano <- function(out, route=NULL, dose=NULL, sex=NULL, detail=N
   plot(1,1, type = "n", xlab = xlabel, xlim = c(0,xmax), # Create (sub)plot
        ylab = ylabel, ylim = Pylim, log = "y")
   points(plasma.data[,1],plasma.data[,2], pch = 19, col = paper.col) # Plot Kemper data
-  lines(out$time.hr, blood, lty = cor.templ.lty, col = cor.templ.col, lwd = 3) # Plot simulation results
+  lines(out$time, blood, lty = cor.templ.lty, col = cor.templ.col, lwd = 3) # Plot simulation results
   title(paste("Plasma,",dose,"mg/kg"), line=-1)
   
   if (dose==25) { # Create 2nd plot for excretion data
@@ -187,20 +185,20 @@ plot.Kemper.Loccisano <- function(out, route=NULL, dose=NULL, sex=NULL, detail=N
     plot(1,1, type = "n", xlab = xlabel, xlim = c(0,xmax),
          ylab = ylabel, ylim = Eylim, log = "y")
     # Urine results:
-    lines(out$time.hr, urine.percent, lty = cor.templ.lty, col = cor.templ.col, lwd = 3)
+    lines(out$time, urine.percent, lty = cor.templ.lty, col = cor.templ.col, lwd = 3)
     points(excr.data[,3], excr.data[,4], pch = 19, col = paper.col)
     lines(excr.data[,1], excr.data[,2], lty = paper.lty, col = paper.col, lwd = 2)
     text(500,0.9*excr.data[excr.data[,1]>=500,2][1],"Urine",font=2)
     
     # Fecal results:
-    lines(out$time.hr, feces.percent, lty = cor.templ.lty, col = cor.templ.col, lwd = 3)
+    lines(out$time, feces.percent, lty = cor.templ.lty, col = cor.templ.col, lwd = 3)
     points(excr.data[,7], excr.data[,8], pch = 19, col = paper.col)
     lines(excr.data[,5], excr.data[,6], lty = paper.lty, col = paper.col, lwd = 2)
     tht = max(excr.data[excr.data[,5]>=500,6][1],feces.percent[out$time.hr==500])
     text(500,1.15*tht,"Feces",font=2)
     
     # Exhalation results
-    lines(out$time.hr, exhale.percent, lty = "dotted", col = cor.templ.col, lwd = 3)
+    lines(out$time, exhale.percent, lty = "dotted", col = cor.templ.col, lwd = 3)
     text(500,1.15*exhale.percent[out$time.hr==500],"Exhaled Air",font=2)
     
     title(paste("Excretion,",dose,"mg/kg"), line=-1)
@@ -222,7 +220,7 @@ plot.Kemper.Loccisano <- function(out, route=NULL, dose=NULL, sex=NULL, detail=N
          ylab = ylabel, ylim = Pylim, log = "y")
     points(plasma.data[,1], plasma.data[,2], pch = 19, col = paper.col)
     
-    lines(out$time.hr, blood, lty = cor.templ.lty, col = cor.templ.col, lwd = 3)
+    lines(out$time, blood, lty = cor.templ.lty, col = cor.templ.col, lwd = 3)
     
     title(paste("Plasma,",dose2,"mg/kg"),line=-1)
   }
