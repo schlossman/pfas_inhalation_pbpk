@@ -45,17 +45,17 @@ PFOA.Loccisano.Kemper <- function(img.name = NULL, case=list(), colr=TRUE,
   BW.table = PFOA_BW_v_age(BW0=BW0, sex="male", BWdata="NTP_BW_SD.csv", dur=26)
     # Uses reported growth data from NTP for SD rats, but transposed to match
     # the reported initial BW.
-  times = 0:(26*24)
   out <- PBPK_run(model.param.filename = "PFOA_inh_template_parameters_Model.xlsx", 
                   model.param.sheetname = model.sheetname, 
                   exposure.param.filename = "PFOA_template_parameters_Exposure.xlsx", 
                   exposure.param.sheetname = "MKemperOral25BW", # dose = 25 mg/kg,
-                  data.times=times, BW.table=BW.table, adj.parms=case$adj_parms)
+                  BW.table=BW.table, adj.parms=adj_parms)
 
   plot.Kemper.Loccisano(out, route="gavage", dose=25.0, sex="Male", 
                         img.name=img.name, colr=colr, detail=case$simtitle)
   print(paste("Maximum mass balance error:", max(abs(out$A_bal))))
   par(mar=c(3,2.4,0.75,0.2), mgp=c(1.5,0.5,0))
+  time1=out$time
   fil=out$C_fil
   
   # Accuracy calculation vs. digitized simulation results from Loccisano
@@ -83,7 +83,7 @@ PFOA.Loccisano.Kemper <- function(img.name = NULL, case=list(), colr=TRUE,
                   model.param.sheetname = model.sheetname, 
                   exposure.param.filename = "PFOA_template_parameters_Exposure.xlsx", 
                   exposure.param.sheetname = "MKemperOral5BW",  # 5 mg/kg dose
-                  data.times=times, BW.table=BW.table, adj.parms=case$adj_parms)
+                  BW.table=BW.table, adj.parms=case$adj_parms)
   
   #plot.Kemper.Loccisano(out, route="gavage", dose=5.0, sex="Male", 
   #                      img.name=img.name, colr=colr)
@@ -94,18 +94,18 @@ PFOA.Loccisano.Kemper <- function(img.name = NULL, case=list(), colr=TRUE,
                    model.param.sheetname = model.sheetname,
                    exposure.param.filename = "PFOA_template_parameters_Exposure.xlsx", 
                    exposure.param.sheetname = "MKemperOral1BW",  # 1 mg/kg dose 
-                   data.times=times, BW.table=BW.table, adj.parms=case$adj_parms)
+                   BW.table=BW.table, adj.parms=case$adj_parms)
   
   plot.Kemper.Loccisano(out, route="gavage", dose=5, sex="Male", detail=case$simtitle, 
                         img.name=img.name, colr=colr, out2=out2, dose2=1.0)
   
-  par(old.par)
-  plot(times, fil, col="red", type="l", ylab = "Concentraton (ug/mL)",
+  par(mar=c(2.4,2.4,0.2,0.2), oma=c(0.1,0.1,0.1,0.1), mgp=c(1.3,0.5,0))
+  plot(time1, fil, col="red", type="l", ylab = expression(paste("PFOA concentration (",mu,"g/mL)")),
        xlab = "Time (h)")
-  lines(times, out$C_fil, col="red", lty=3)
-  lines(times, out2$C_fil, col="red", lty=2)
-  title("Renal filtrate concentration predictions")
-  title(case$simtitle, line=-1)
+  lines(out$time, out$C_fil, col="red", lty=3)
+  lines(out2$time, out2$C_fil, col="red", lty=2)
+  title("Renal filtrate concentration predictions", line=-1)
+  title(case$simtitle, line=-2)
 }
 
 plot.Kemper.Loccisano <- function(out, route=NULL, dose=NULL, sex=NULL, detail=NULL, 
@@ -136,7 +136,7 @@ plot.Kemper.Loccisano <- function(out, route=NULL, dose=NULL, sex=NULL, detail=N
   cor.templ.lty <- "solid"
   
   # Plotting labels:
-  ylabel = "PFOA concentration (ug/mL)"
+  ylabel = expression(paste("PFOA concentration (",mu,"g/mL)"))
   xlabel = "Time (h)"
   
   if (!is.null(img.name)){ # Create tiff if file name is not null.
@@ -144,7 +144,7 @@ plot.Kemper.Loccisano <- function(out, route=NULL, dose=NULL, sex=NULL, detail=N
   }
   # Set plot frame parameters:
   opar <- par(no.readonly = TRUE)
-  par(mfrow=c(1,2), mar=c(3,2.4,1.75,0.2), oma=c(1.5,0.1,0.1,0.1), mgp=c(1.5,0.5,0))
+  par(mfrow=c(1,2), mar=c(3,2.4,1.75,0.2), oma=c(1.5,0.1,0.1,0.1), mgp=c(1.3,0.5,0))
   if (dose==25){ 
     par(mar=c(0.2,2.4,1.75,0.2), oma=c(0.1,0.1,0.1,0.1), xaxt="n")
     xlab=NA
@@ -199,7 +199,7 @@ plot.Kemper.Loccisano <- function(out, route=NULL, dose=NULL, sex=NULL, detail=N
     
     # Exhalation results
     lines(out$time, exhale.percent, lty = "dotted", col = cor.templ.col, lwd = 3)
-    text(500,1.15*exhale.percent[out$time.hr==500],"Exhaled Air",font=2)
+    text(500,1.15*exhale.percent[out$time==500],"Exhaled Air",font=2)
     
     title(paste("Excretion,",dose,"mg/kg"), line=-1)
   } 
