@@ -33,7 +33,7 @@ model.sheetname = "MaleRat_2blood_noapprox"
 cases = list(
   case1=list(adj_parms=c(P_B=100000), 
           labysr=c(46,25,12), 
-          simtitle="Published Parameters Changed, Lung & Second Blood Compartments Added"),
+          simtitle="No Published Parameters Changed, Lung & Second Blood Compartments Added"),
   case2=list(adj_parms=c(V_max_reabsc=0.5, 
                       K_m_reabs=60, 
                       k_ustc=0.7, 
@@ -52,9 +52,7 @@ PFOA.Loccisano.Kemper(case=case, colr=FALSE, model.sheetname=model.sheetname)
 
 if (is.null(case$adj_parms)) {
   case$simtitle = "Single and Multi-Day PFOA Inhalation PK Data & Simulations"
-} else {
-  case$simtitle = paste("VPR, QCC,",case$simtitle)
-}
+  }
 #case$adj_parms = c(case$adj_parms, Q_cardiacc=9.94, VPR=5.18)
 
 exp.sheetname.head = "inhal_oral_6hr_" # Exposure sheet name header for combined inhalation/oral simulation
@@ -112,7 +110,7 @@ for (i in 1:length(doses)) {
     #par(mar=c(2.7,3,0.75,0.2),mgp=c(1.8,0.7,0))
     ymax = max(data$Plasma_Conc_Mean, 80)#out$C_ven) #
     plot(1,1, type="n", xlab="Time (h)", ylim=c(0,ymax), xlim=c(0,max(out[,"time"])), 
-         ylab=expression(paste("Venous blood concentration ( ",mu,"g/mL)")), 
+         ylab=expression(paste("Venous blood concentration (",mu,"g/mL)")), 
          title=NULL)
   }
   points(data$Time, data$Plasma_Conc_Mean, pch=pchs[i])
