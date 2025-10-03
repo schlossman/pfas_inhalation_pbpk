@@ -105,7 +105,7 @@ PFOA.Loccisano.Kemper <- function(img.name = NULL, case=list(), colr=TRUE,
   lines(out$time, out$C_fil, col="red", lty=3)
   lines(out2$time, out2$C_fil, col="red", lty=2)
   title("Renal filtrate concentration predictions", line=-1)
-  title(case$simtitle, line=-2)
+  title(case$simtitle, line=-2, cex.main=1, font.main=3)
 }
 
 plot.Kemper.Loccisano <- function(out, route=NULL, dose=NULL, sex=NULL, detail=NULL, 
