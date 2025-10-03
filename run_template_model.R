@@ -15,7 +15,7 @@
 # Feb 2021
 #  - remove optimization and sensitivity analysis related code to separate file
 #
-# Aug-Sept 2025
+# Aug-Oct 2025
 #  - convert to use MCSimMod instead of older R/MCSim commands
 #  - Paul Schlosser, U.S. EPA
 #------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ PBPK_run <- function(model=template, load=TRUE,
                      exposure.param.filename=NULL, exposure.param.sheetname=NULL, 
                      data.times=NULL, adj.parms=NULL, BW.table=NULL,
                      Freef.table=NULL, water.dose.frac=NULL, cust_expo=NULL,
-                     rtol=1e-8, atol=1e-8){
+                     rtol=1e-8, atol=1e-8, method="lsoda"){
   # This function runs a simulation using the compiled MCSim model ("model")
   # using model and exposure parameters as described in the input spreadsheets.
   #
@@ -149,7 +149,7 @@ PBPK_run <- function(model=template, load=TRUE,
                cbind(times=Freef_times, Free_in=Freef))
   
   # Start with null dosing data-frames
-  df_dose <- df_dose_bol_oral <- df_dose_step_oral <- NULL
+  df_dose <- df_dose_bol_oral <- step_oral <- NULL
   df_dose_per_inhal <- df_dose_step_inhal <- df_dose_IV <- NULL
 
   # If exposure requires dose function, construct the input
@@ -176,22 +176,12 @@ PBPK_run <- function(model=template, load=TRUE,
       }
       
       # Daily water ingestion times (24 hour clock)
-      tz_daily = seq.int(exp_parms[["t.first.dose_water"]], exp_parms[["t.final.dose_water"]], length.out=nz)
+      tz_daily = seq.int(exp_parms[["t.first.dose_water"]], 
+                         exp_parms[["t.final.dose_water"]], length.out=nz)
       # Initialize vector of all water dose times and of all water dose amounts.
-      tz = vector("numeric", eoparms$sim.days*nz)
-      dz = tz
-      
-      # Build a vector to contain the simulation times at which water ingestion
-      # occurs and a vector that contains the corresponding doses.
-      nidx = 1:nz
-      for (day in 1:eoparms$sim.days) { # for each day
-        tz[nidx] = tz_daily # Add to vector of times 
-        tz_daily = tz_daily+24 # Update times for next day
-        # total dose for the day (mg/d) base on mid-day BW, i.e., 12 h + hours passed 
-        # Drinking water dose per event (mg).
-        dz[nidx] = BW_fnc((day-1)*24+12)*water.dose.frac # Add to vector of doses
-        nidx = nidx + nz # Update indices for next day
-      }
+      tt=floor((0:(days*nz-1))/nz)*24 # Times at start of each day, repeated
+      tz = floor((0:(eoparms$sim.days*nz-1))/nz)*24 + tz_daily
+      dz = BW_fnc(tz)*water.dose.frac
       
       # Data frame containing bolus dosing events.
       df_dose_bol_oral = data.frame(var="A_glumen", time=tz, value=dz, method="add")
@@ -207,7 +197,7 @@ PBPK_run <- function(model=template, load=TRUE,
     } #end if(eoparms$water.dose == "Y")
   
   if(eoparms$inhal.dose == "Y") {
-    # Doses and times for single-day exposures:
+    # Doses and times for single-day inhalation exposures:
     dose_per_event = c(parms[["Conc_init"]], 0)
     tz = c(0,24*eoparms$sim.days) # Default assumption: continuous exposure from time=0 to end of simulation
     if (!is.null(exp_parms$time.exp.starts)) tz[1] = exp_parms$time.exp.starts
@@ -266,10 +256,10 @@ PBPK_run <- function(model=template, load=TRUE,
   df_dose = rbind(df_dose_bol_oral, df_dose_per_inhal, df_dose_step_inhal, 
                   df_dose_IV, step_oral, cust_expo)
   # Sorted data frame.
-  alltimes = data.times
+  alltimes = times
   if(!is.null(df_dose)) { 
     df_dose = df_dose[order(df_dose$time), ]
-    alltimes =sort(unique(c(data.times,df_dose$time)))
+    alltimes =sort(unique(c(times,df_dose$time)))
   }
   
   # Determine initial states for cases of endogenous production when given by a 
@@ -302,9 +292,9 @@ PBPK_run <- function(model=template, load=TRUE,
   
   # Run simulation using the actual exposure information. (Assume units in mg/L)
   out = model$runModel(times=alltimes, forcings = Forc, events=list(data=df_dose),
-                  rtol=rtol, atol=atol)
+                  rtol=rtol, atol=atol, method=method)
     # Only return simulation values at requested time points
-  out_df <- as.data.frame(out[out[,"time"]%in%data.times,])
+  out_df <- as.data.frame(out[out[,"time"]%in%times,])
   out_df[,"time.days"] <- out_df[,"time"]/24  # Convert hours to days
   return(out_df)
 }
