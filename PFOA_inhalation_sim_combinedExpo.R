@@ -33,11 +33,7 @@ model.sheetname = "MaleRat_2blood_noapprox"
 cases = list(
   case1=list(adj_parms=c(P_B=100000), 
           labysr=c(46,25,12), 
-<<<<<<< HEAD
           simtitle="No Published Parameters Changed, Lung & Second Blood Compartments Added"),
-=======
-          simtitle="Published Parameters Changed, Lung & Second Blood Compartments Added"),
->>>>>>> e93f8e3907243034a0081fcf17490663d2c5713b
   case2=list(adj_parms=c(V_max_reabsc=0.5, 
                       K_m_reabs=60, 
                       k_ustc=0.7, 
@@ -114,11 +110,7 @@ for (i in 1:length(doses)) {
     #par(mar=c(2.7,3,0.75,0.2),mgp=c(1.8,0.7,0))
     ymax = max(data$Plasma_Conc_Mean, 80)#out$C_ven) #
     plot(1,1, type="n", xlab="Time (h)", ylim=c(0,ymax), xlim=c(0,max(out[,"time"])), 
-<<<<<<< HEAD
          ylab=expression(paste("Venous blood concentration (",mu,"g/mL)")), 
-=======
-         ylab=expression(paste("Venous blood concentration ( ",mu,"g/mL)")), 
->>>>>>> e93f8e3907243034a0081fcf17490663d2c5713b
          title=NULL)
   }
   points(data$Time, data$Plasma_Conc_Mean, pch=pchs[i])
