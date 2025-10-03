@@ -1,7 +1,7 @@
 PBPK Model Template application: model extrapolation to predict PK from PFOA 
 inhalation experiments, with predictions of Kemper et al. oral bolus experiment
 for validation, using parameters otherwise from the Loccisano et al. (2012)
-PFOA PBPK model.
+PFOA PBPK model. --Paul Schlosser, U.S. EPA, Oct. 3, 2025.
 
 -------------------------
 PFOA_inhalation_sim_combinedExpo.R
@@ -76,6 +76,17 @@ estimation. These are not used for the pfas inhalation analysis conducted in
 PFOA_Loccisano_Kemper.R
 Functions to run Loccisano et al. (2012) PFOA PBPK model simulations of Kemper 
 et al. oral PK data and plot results.
+
+-------------------------
+Documentation [folder]
+*** Warning!!! *** This documentation was created for the previous version of 
+the PBPK Model Template, which did not use MCSimMod and required additional 
+steps to implement. The model equations have been revised to allow for time-
+dependent cardiac output, some of the original scripts and functions have been 
+removed (no longer needed) and the arguments of other functions have been
+revised. However, much of the PBPK Model Template architecture and functions
+remains, so this documentation may still be of assistance. We do hope to revise
+these in the near future.
 
 -------------------------
 Data [folder]
