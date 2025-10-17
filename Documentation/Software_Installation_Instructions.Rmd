@@ -1,0 +1,25 @@
+---
+title: "&nbsp;"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### Installation of R and MCSim
+
+Dustin Kapraun, US EPA, 4/26/2019
+Revision for MCSimMod: Pau Schlosser, US EPA 10/17/2025
+
+1)	Install R (https://cran.r-project.org). We recommend using the default installation directory, "C:\Program Files\R\". 
+
+2)	Install Rtools (https://cran.r-project.org/bin/windows/Rtools/). This should be installed in the default location, "C:\Rtools\". Note that installation of Rtools requires administrative privileges. The Rtools suite of tools includes a C compiler (gcc) that will be used to generate a compiled version of a given MCSim model that can be used by the R package "MCSimMod".*
+
+3)	(Optional, but recommended.) Install Rstudio (https://www.rstudio.com). Rstudio includes a code editor and debugging, visualization and Git versioning tools.
+
+4)	From R or Rstudio, install the packages "MCSimMod" and "readxl": 
+    a) If using command line R, use the "install.packages" method. 
+    b) If using RGui, choose "Install package(s)..." from the "Packages" menu, then follow the instructions. 
+    c) If using Rstudio, choose "Install packages..." from the "Tools" menu, then follow the instructions. (The dependent package, "deSolve" (which provides methods for integrating ordinary differential equations), and any other dependent packages should be automatically installed in the process, if they have not been already.).
+    
+**NOTE*: installing Rtools adds a directory for the gcc that it uses to the system PATH environment variable. Users who already have another gcc installed, in particular for the legacy ACSLX software, may then find that compiling C code in that other software fails. Changing the ordering of the directories listed in the PATH environment variable such that the appropriate directory is listed *first* (depending on which of these the user plans to run) should resolve any such problem. After Rtools installation, the relevant directories are listed in the *system* PATH environment variable (not the user-specific PATH environment variable), and administrative privileges are required to modify this PATH variable. However, one can set the user PATH as needed without administrative privileges and this will take precedence over the system PATH (when logged in as that user).
