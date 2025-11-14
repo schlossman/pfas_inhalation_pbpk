@@ -12,13 +12,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 These instructions allow you to run the simulations given in the included script files for simulations of dichloromethane, methanol, and chloroform.
 
-1.	Install R, RStudio, the R packages "deSolve" and "readxl", Rtools, and GNU MCSim on your system. Instructions can be found in "R_and_MCSim_installation_instructions.html".
+1.	Install R, RStudio, and the R packages "MCSimMod" and "readxl", and Rtools, on your system. Instructions can be found in "Software_installation_instructions.html" in this folder.
 
-1.	Open RStudio.
+2.	Open RStudio.
 
-1.	Within RStudio, open the R source code file containing the desired simulations, e.g. "DCM_IRIS_scripts.R"
+3.  Optional: open the file, "run_template_model.R" and the "Source" button to run the included commands and load the included functions. This will load the MCSimMod and readx libraries, create the "template" MCSimMod model object, and define the key R functions needed to run the model. The various chemical-specific .R files should also "source" "run_template_model.R" as an initial step, but it may be helpful to do this yourself first, e.g., if trying to perform other analyses.
 
-1.	Use the "Source" button to load the included functions.
+4.	Within RStudio, open the R source code file containing the desired simulations, e.g. "DCM_IRIS_scripts.R" and use the "Source" button to load the included functions.
 
 1. If this is the first time using the template model, compile the template model by using the command `PBPK_compile()`. This command was loaded when sourcing the script file in step 4, and the function definition can be found in the file "run_template_model.R".
 
