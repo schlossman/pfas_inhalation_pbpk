@@ -555,7 +555,7 @@ load.exposure.parameters <- function(filename, sheetname = NULL, parms){
   if (model.info$inhal.dose == "Y"){
     if ("Conc_init"%in%names(model.param)) parms["Conc_init"]=model.param$Conc_init
     if ("NCH"%in%names(model.param)) parms["NCH"]=model.param$NCH
-    if ("VCHC"%in%names(model.param)) parms["VCH"]=model.param$VCHC*convertV
+    if ("VCHC"%in%names(model.param)) parms["VCHC"]=model.param$VCHC*convertV
     if ("KL"%in%names(model.param)) parms["KL"]=model.param$KL/convertT
     if ("inh.stop.time"%in%names(model.param)) exp.parms$inh.stop.time <- model.param$inh.stop.time*convertT
     if ("time.exp.starts"%in%names(model.param)) exp.parms$time.exp.starts <- model.param$time.exp.starts*convertT

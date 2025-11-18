@@ -39,8 +39,7 @@ DCM.IRIS.Table5.1 <- function(){
   
   # IRIS results from: "Rat DW Serota 1986a_EPA.m"
   
-  load(file = "Data/Data_DCM/DCM_Table5.1.Rdata") # Load copy of table from original model template
-  s5.1 = table5.1
+  s5.1 <- readRDS("Data/Data_DCM/DCM_Table5.1.rds")
   
   daily.intake.m <- c(0, 6, 52, 125, 235)
   #daily.intake.f <- c(0, 6, 58, 136, 263)
@@ -59,7 +58,7 @@ DCM.IRIS.Table5.1 <- function(){
                          met.dose.liv.cyp, IRIS.met.dose.liv.cyp)
   
   nd = length(daily.intake.m)
-  for (ii in 1:nd){
+  for (ii in 1:nd){ # Results for males
     out <- PBPK_run(model.param.filename = "DCM_template_parameters_Model.xlsx",
                     model.param.sheetname = "IRIS_model_rat_VarC", 
                     exposure.param.filename = "DCM_template_parameters_Exposure.xlsx", 
@@ -76,29 +75,23 @@ DCM.IRIS.Table5.1 <- function(){
     
     # CYP pathway in liver (mg DCM metabolized via CYP pathway/L tissue/day)
     table5.1$met.dose.liv.cyp[ii] <- (out$A_met_sat_li[last] - out$A_met_sat_li[lastweek])/(7*out$V_li[last])
-
     if (ii>1) {
       s5.1$met.dose.liv.gst[ii] = s5.1$met.dose.liv.gst[ii]/table5.1$met.dose.liv.gst[ii] -1
       s5.1$met.dose.liv.cyp[ii] = s5.1$met.dose.liv.cyp[ii]/table5.1$met.dose.liv.cyp[ii] -1
     }
-
   }
   table5.1[(1:nd)+nd,] <- s5.1
 
-  # for (ii in daily.intake.f){
-  #   
+  # for (ii in daily.intake.f){ # Results for females
   #   out <- PBPK_run(model.param.filename = "DCM_template_parameters_Model.xlsx",
   #                   model.param.sheetname = "IRIS_model_rat_VarC", 
   #                   exposure.param.filename = "DCM_template_parameters_Exposure.xlsx", 
   #                   exposure.param.sheetname = "Oral_Periodic_IRIS_T5.1",
   #                   adj.parms = c(dose_water = ii, BW = 0.229))
-  #   
   #   # GST pathway
   #   table5.1$met.dose.liv.gst[idx] <- (out$A_met_1st_li[3361] - out$A_met_1st_li[1681])/(7*0.04*0.38)
-  #   
   #   # CYP pathway
   #   table5.1$met.dose.liv.cyp[idx] <- (out$A_met_sat_li[3361] - out$A_met_sat_li[1681])/(7*0.04*0.38)
-  #   
   #   idx <- idx + 1
   # }
   
@@ -112,35 +105,33 @@ DCM.IRIS.Table5.11 <- function(){
   # Simulates male B6C3F1 mice exposed to dichloromethane in drinking water for 
   # 2 years, and computes the amount metabolized by the GST pathway
   
+  s5.11 = readRDS("Data/Data_DCM/DCM_Table5.11.rds")
+  
   daily.intake <- c(0, 61, 124, 177, 234)
   met.dose.body <- rep(0,length(daily.intake))
   IRIS.met.dose.body <- c(0, 0.73, 2.65, 4.68, 7.1)
-  
   water.dose.frac <- c(0.233, 0.1, 0.1, 0.1, 0.233, 0.234) #IRIS mouse
   
   table5.11 <- data.frame(daily.intake, met.dose.body, IRIS.met.dose.body)
-  idx <- 1
-  
-  for (ii in daily.intake){
-  
-  out <- PBPK_run(model.param.filename = "DCM_template_parameters_Model.xlsx",
-                  model.param.sheetname = "IRIS_model_mouse", 
-                  exposure.param.filename = "DCM_template_parameters_Exposure.xlsx", 
-                  exposure.param.sheetname = "Oral_Periodic_IRIS_T5.11",
-                  adj.parms = c(dose_water = ii), 
-                  water.dose.frac = water.dose.frac)
-  
-  # Compute daily averages over the last week of the simulation
-  last <- length(out$A_met_1st)
-  lastweek <- 1681
-  BW <- 0.0373
-  
-    table5.11$met.dose.body[idx] <- (out$A_met_1st[last] - out$A_met_1st[lastweek])/(7*BW)
-    idx <- idx + 1
+
+  nd = length(daily.intake)
+  for (ii in 1:nd){
+    out <- PBPK_run(model.param.filename = "DCM_template_parameters_Model.xlsx",
+                    model.param.sheetname = "IRIS_model_mouse", 
+                    exposure.param.filename = "DCM_template_parameters_Exposure.xlsx", 
+                    exposure.param.sheetname = "Oral_Periodic_IRIS_T5.11",
+                    adj.parms = c(dose_water = daily.intake[ii]), 
+                    water.dose.frac = water.dose.frac)
+    # Compute daily averages over the last week of the simulation
+    last <- length(out$A_met_1st)
+    lastweek <- which(out$time.days==(out$time.days[last]-7))
+    table5.11$met.dose.body[ii] <- (out$A_met_1st[last] - out$A_met_1st[lastweek])/(7*out$BW_out[1])
+    if (ii>1) {
+      s5.11$met.dose.body[ii] = s5.11$met.dose.body[ii]/table5.11$met.dose.body[ii] -1
+      }
   }
-  
+  table5.11[(1:nd)+nd,] <- s5.11
   return(table5.11)
-  
 }
 
 DCM.IRIS.FigC3 <- function(img.name = NULL){
@@ -151,13 +142,9 @@ DCM.IRIS.FigC3 <- function(img.name = NULL){
   
   # Load Gargas inhalation data
   dataC3 <- read.csv(file = "Data/Data_DCM/gargas-inh-data2_NEW.csv", fileEncoding="UTF-8-BOM")
-  
   # Initial concentration in ppm
   conc.ppm <- c(107.0, 498.0, 1028.0, 3206.0)
-  
-  out.time.hr <- rep(0,1)
   out.all <- NULL
-  
   for (ii in conc.ppm){
     
     out <- PBPK_run(model.param.filename = "DCM_template_parameters_Model.xlsx",
@@ -166,10 +153,7 @@ DCM.IRIS.FigC3 <- function(img.name = NULL){
                     exposure.param.sheetname = "Inh_Closed_IRIS_FigC3",
                     adj.parms = c(Conc_init = ii, BW = 0.225),
                     data.times = dataC3$Atime)
-    
-    out.all.time <- out$time.hr
     out.all <- cbind(out.all, out$C_chppm)
-    
   }
   
   # Calculate error - percent difference between template and IRIS sims
@@ -192,9 +176,9 @@ DCM.IRIS.FigC3 <- function(img.name = NULL){
   
   plot(1,1, type ="n", xlab = "Time (hr)", ylab = "Chamber Concentration (ppm)", 
        xlim = c(0,4.5), ylim = c(0,500))
-  lines(out.all.time,out.all[,1], col = templ.col, lty = templ.lty, lwd = 3)
-  lines(out.all.time,out.all[,2], col = templ.col, lty = templ.lty, lwd = 3)
-  lines(out.all.time,out.all[,3], col = templ.col, lty = templ.lty, lwd = 3)
+  lines(out$time,out.all[,1], col = templ.col, lty = templ.lty, lwd = 3)
+  lines(out$time,out.all[,2], col = templ.col, lty = templ.lty, lwd = 3)
+  lines(out$time,out.all[,3], col = templ.col, lty = templ.lty, lwd = 3)
   lines(dataC3$Atime,dataC3$C1, col = pub.col, lty = pub.lty, lwd = 2)
   lines(dataC3$Atime,dataC3$C5, col = pub.col, lty = pub.lty, lwd = 2)
   lines(dataC3$Atime,dataC3$C10, col = pub.col, lty = pub.lty, lwd = 2)
