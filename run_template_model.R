@@ -101,8 +101,17 @@ PBPK_run <- function(model=template, load=TRUE,
   eoparms <- eparms$other_parms
   exp_parms <- eoparms$exp.parms
   
-  # Adjust any parameters set with new values in adj.parms:
-  parms <- update_vals(parms, adj.parms, stopifwarned=TRUE)
+  if(!is.null(adj.parms)){ # Adjust any parameters set with new values in adj.parms:
+      n <- names(adj.parms)
+      neo <- n%in%names(eoparms) # Look for ones in eoparms
+      nex <- n%in%names(exp_parms) # Look for ones in exp_parms
+      np <- n%in%names(parms) # Look for ones in eoparms
+      if (any(neo)) eoparms <- update_vals(eoparms, adj.parms[n[neo]])
+      if (any(nex)) exp_parms <- update_vals(exp_parms, adj.parms[n[nex]])
+      if (any(np)) parms <- update_vals(parms, adj.parms[np])
+      if (any(!(neo|nex|np))) stop(paste("The following parameters in adj.parms are 
+                                         unused parameters:",n[which(!(neo|nex|np))]))
+      }
  
   # Check for incompatible parameters
   # Only one urinary excretion pathway should be used.
