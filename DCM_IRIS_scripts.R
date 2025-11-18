@@ -5,6 +5,8 @@
 # Author: Amanda Bernstein, December 2020
 # Adapted for use with PBPK_template.model as revised for PFAS inhalation and 
 # the MCSimMod package by Paul Schlosser, November 2025
+# Table functions below now read in Tables produced by the non-MCSimMod package
+# and append the differences between those and the current results.
 
 # Set working directory to the directory containing this file.
 script.dir = dirname(sys.frame(1)$ofile)
@@ -55,36 +57,33 @@ DCM.IRIS.Table5.1 <- function(){
   
   table5.1 <- data.frame(daily.intake, met.dose.liv.gst, IRIS.met.dose.liv.gst,
                          met.dose.liv.cyp, IRIS.met.dose.liv.cyp)
-  idx <- 1
- 
-  for (ii in daily.intake.m){
-    
+  
+  nd = length(daily.intake.m)
+  for (ii in 1:nd){
     out <- PBPK_run(model.param.filename = "DCM_template_parameters_Model.xlsx",
                     model.param.sheetname = "IRIS_model_rat_VarC", 
                     exposure.param.filename = "DCM_template_parameters_Exposure.xlsx", 
                     exposure.param.sheetname = "Oral_Periodic_IRIS_T5.1",
-                    adj.parms = c(dose_water = ii),
+                    adj.parms = c(dose_water = daily.intake.m[ii]),
                     water.dose.frac = water.dose.frac)
     
     # Compute daily averages over the last week of the simulation
     last <- length(out$A_met_1st_li)
-    lastweek <- 1681
-    
-    liverfrac <- 0.04
-    BW <- 0.38
-    livervolume <- liverfrac*BW
-    
+    lastweek <- which(out$time.days==(out$time.days[last]-7))
+
     # GST pathway in liver (mg DCM metabolized via GST pathway/L tissue/day)
-    table5.1$met.dose.liv.gst[idx] <- (out$A_met_1st_li[last] - out$A_met_1st_li[lastweek])/(7*livervolume)
-    s5.1$met.dose.liv.gst[idx] = s5.1$met.dose.liv.gst[idx] - table5.1$met.dose.liv.gst[idx]
+    table5.1$met.dose.liv.gst[ii] <- (out$A_met_1st_li[last] - out$A_met_1st_li[lastweek])/(7*out$V_li[last])
     
     # CYP pathway in liver (mg DCM metabolized via CYP pathway/L tissue/day)
-    table5.1$met.dose.liv.cyp[idx] <- (out$A_met_sat_li[last] - out$A_met_sat_li[lastweek])/(7*livervolume)
-    s5.1$met.dose.liv.cyp[idx] = s5.1$met.dose.liv.cyp[idx] - table5.1$met.dose.liv.cyp[idx]
-    
-    idx <- idx + 1
+    table5.1$met.dose.liv.cyp[ii] <- (out$A_met_sat_li[last] - out$A_met_sat_li[lastweek])/(7*out$V_li[last])
+
+    if (ii>1) {
+      s5.1$met.dose.liv.gst[ii] = s5.1$met.dose.liv.gst[ii]/table5.1$met.dose.liv.gst[ii] -1
+      s5.1$met.dose.liv.cyp[ii] = s5.1$met.dose.liv.cyp[ii]/table5.1$met.dose.liv.cyp[ii] -1
+    }
+
   }
-  table5.1[(1:idx)+idx,] <- s5.1
+  table5.1[(1:nd)+nd,] <- s5.1
 
   # for (ii in daily.intake.f){
   #   
