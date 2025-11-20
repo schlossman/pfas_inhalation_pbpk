@@ -15,7 +15,7 @@
 # Feb 2021
 #  - remove optimization and sensitivity analysis related code to separate file
 #
-# Aug-Oct 2025
+# Aug-Nov 2025
 #  - convert to use MCSimMod instead of older R/MCSim commands
 #  - Paul Schlosser, U.S. EPA
 #------------------------------------------------------------------------------
@@ -583,21 +583,26 @@ load.exposure.parameters <- function(filename, sheetname = NULL, parms){
 
 # Error analysis functions
 perc.diff <- function(model, data, tol=1e-6){
-  # Compute percent difference between model and data values relative to data
-  perc.diff <- 100*(data-model)*((data-model)>tol)/data
+  # Compute absolute percent difference between model and data values relative to data
+  perc.diff <- abs(100*(1-model/(data+tol/1000))*((data-model)>tol))
   return(perc.diff)
- }
+}
+
+max.diff <- function(model, data, tol=1e-6){
+  # Compute maximum absolute percent difference between model and data values relative to data
+  return(round(max(perc.diff(model, data, tol)),2))
+}
 # 
 perc.diff.scale <- function(model, data, fig.scale){
-  # Compute percent difference between model and data values relative to scale 
+  # Compute absolute percent difference between model and data values relative to scale 
   # of the digitized figure
-  perc.diff <- 100*((model-data)/fig.scale)
+  perc.diff <- abs(100*(model-data)/fig.scale)
   return(perc.diff)
 }
 # 
-perc.diff.calc <- function(model, data){
-  # Compute percent difference between two models 
+perc.diff.calc <- function(model, data, tol=1e-6){
+  # Compute absolute percent difference between two models 
   # (relative to the average value of the models)
-  perc.diff.calc <- 100*((model-data)/((model+data)/2))
+  perc.diff.calc <- abs(200*(model-data)*((data-model)>tol)/(model+data+tol/1000))
   return(perc.diff.calc)
 }
