@@ -163,7 +163,7 @@ PBPK_run <- function(model=template, load=TRUE,
 
   # If exposure requires dose function, construct the input
   # For example: drinking water or periodic inhalation
-  if(!is.null(names(exp_parms))){
+  if(!is.null(names(exp_parms))){ 
     # if the dose is via drinking water, construct the input:
     if(eoparms$water.dose == "Y"){
       # Function to return linear interpolation of the BW at the given time
@@ -239,10 +239,10 @@ PBPK_run <- function(model=template, load=TRUE,
 
   # IV infusion
   if (!is.null(eoparms$T_iv_infuse)) {
-    Y0["R_IV"] = parms[["iv_dose"]]*parms[["BW"]]/eparms$T_iv_infuse # rate in mg/h
+    Y0["R_IV"] = parms[["iv_dose"]]*parms[["BW"]]/eoparms$T_iv_infuse # rate in mg/h
     parms["iv_dose"] = 0 # reset initial state of amount in blood to zero
     # Then create data-frame to turn off infusion at specified time
-    df_dose_IV = data.frame(var=c("R_IV"), time=eparms$T_iv_infuse, value=0, method="rep")
+    df_dose_IV = data.frame(var=c("R_IV"), time=eoparms$T_iv_infuse, value=0, method="rep")
   }
   
   # Continuous Oral Dose
@@ -271,34 +271,37 @@ PBPK_run <- function(model=template, load=TRUE,
     alltimes =sort(unique(c(times,df_dose$time)))
   }
   
-  # Determine initial states for cases of endogenous production when given by a 
-  # venous blood concentration at steady state.
-  # Assume no other exposure. **This is taken care of within the 
-  # compute_endog_rate function and needs to be updated whenever new parameters 
-  # that affect the initial states in the model are added.**
+  model$updateParms(parms) # Update model$parms based on parms from above.
+  model$updateY0(Y0) # Update model$Y0 based on Y0 from above.
+  
+  # Address non-zero initial conditions due to endogenous production:
   
   # Compute endogenous production rate and SS values based on initial BW, Free fraction in plasma 
-  model$updateParms(parms)
-  model$updateY0(Y0)  
   Forc_SS <- list(cbind(times=c(0, tail(times,1)), BW_in=c(1,1)*parms["BW"]),
                   cbind(times=c(0, tail(times,1)), Free_in=c(1,1)*parms["F_free"]))
   
   if (!is.null(eoparms$C_ven_SS)) {
+  # Determine initial states for cases of endogenous production when given by 
+  # a venous blood concentration at steady state. Assume no other exposure.
+  # **This is taken care of within the compute_endog_rate function and needs
+  # to be updated whenever new parameters that affect the initial states in
+  # the model are added.**
     if (eoparms$C_ven_SS > 0.0) {
       model$parms["R_0bgli"] = compute_endog_rate(c_data=eoparms$C_ven_SS, 
                                                   model=model, Forc=Forc_SS)
-      print(paste("Calculated Endogenous Production Rate:", parms["R_0bgli"]))
+      print(paste("Calculated Endogenous Production Rate:", model$parms["R_0bgli"]))
     }
   }
-  # if there is an endogenous rate, 
-  # adjust the initial conditions to include what is at steady state
+  
+  # Then, if there is an endogenous rate (may have been a set input), adjust 
+  # the initial conditions to include what is at steady state
   if (model$parms["R_0bgli"] > 0.0){ 
     Y0_SS = find_SS_noDose(model=model, Forc=Forc_SS)
-    model$updateY0(Y0_SS[Y0_SS>0])
-      # Revise initial states with the states that arise from the background
-      # exposure that are > 0.
+    model$Y0 <- update_vals(model$Y0, Y0_SS[Y0_SS>0])
+      # Revise *only* the initial states with the states that arise from the
+      # background exposure that are > 0 usin update_vals(). 
   }
-  
+
   # Run simulation using the actual exposure information. (Assume units in mg/L)
   out = model$runModel(times=alltimes, forcings = Forc, events=list(data=df_dose),
                   rtol=rtol, atol=atol, method=method)
@@ -553,6 +556,7 @@ load.exposure.parameters <- function(filename, sheetname = NULL, parms){
   exp.parms <- list()
 
   if (model.info$inhal.dose == "Y"){
+    exp.parms$inhal.dose = "Y"
     if ("Conc_init"%in%names(model.param)) parms["Conc_init"]=model.param$Conc_init
     if ("NCH"%in%names(model.param)) parms["NCH"]=model.param$NCH
     if ("VCHC"%in%names(model.param)) parms["VCHC"]=model.param$VCHC*convertV
