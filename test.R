@@ -89,5 +89,5 @@ print(paste("Initial amount in GI lumen:",model$Y0[["A_glumen"]]))
   }
   
   print("Simulation resuts (final timepoint) that are negative:")
-  out_SS2[out_SS2<0]
+  print(out_SS2[out_SS2<0])
   
