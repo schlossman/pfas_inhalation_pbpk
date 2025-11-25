@@ -33,7 +33,9 @@ setwd(script.dir)
 # language with file name "PBPK_template.model", and a function to run it as
 # a PBPK Model Template, using the MCSimMod package by Dustin Kapraun.
 
-template <- createModel("PBPK_template") 
+model <- template <- createModel("PBPK_template") 
+model$loadModel()
+template$loadModel()
 
 update_vals <- function(p, np, stopifwarned=FALSE){
   # Function expecting two named lists, p (existing parameter/values), np (new 
@@ -57,7 +59,7 @@ PBPK_run <- function(model=template, load=TRUE,
                      exposure.param.filename=NULL, exposure.param.sheetname=NULL, 
                      data.times=NULL, adj.parms=NULL, BW.table=NULL,
                      Freef.table=NULL, water.dose.frac=NULL, cust_expo=NULL,
-                     rtol=1e-8, atol=1e-8, method="lsoda"){
+                     rtol=1e-8, atol=1e-8, method="lsoda", reportendog=FALSE){
   # This function runs a simulation using the compiled MCSim model ("model")
   # using model and exposure parameters as described in the input spreadsheets.
   #
@@ -83,10 +85,12 @@ PBPK_run <- function(model=template, load=TRUE,
   #     in the events list passed to the ODE solver. It must have the columns 
   #     var, time, value, and method. See the documentation for the R package 
   #     deSolve for more information.
+  # reportendog is a boolean, default = FALSE; if TRUE, the estimated endogenous
+  #     production rate (if calculated) is written to the screen.
   
   # Load the dll file unless user specifies not to do so
   if (load) model$loadModel()
-  
+  model$updateParms()
   # Adjust default parameters by importing from given excel file
   mparms <- load.model.parameters(filename=model.param.filename,
                                   sheetname=model.param.sheetname, model$parms)
@@ -122,9 +126,6 @@ PBPK_run <- function(model=template, load=TRUE,
   # Define times (h) for simulation.
   if (!is.null(data.times)){ times = sort(unique(c(0, data.times))) # list of times provided by user
   } else { times = seq(from=0, to=eoparms$sim.days*24, by=0.25) } # define list of times based on length of simulation
-  
-  # Create Forcing functions for changing BW, Free fraction
-  Forc = NULL
   
   # Construct BW table
   if (eoparms$BW_constant == "N"){
@@ -287,19 +288,20 @@ PBPK_run <- function(model=template, load=TRUE,
   # to be updated whenever new parameters that affect the initial states in
   # the model are added.**
     if (eoparms$C_ven_SS > 0.0) {
-      model$parms["R_0bgli"] = compute_endog_rate(c_data=eoparms$C_ven_SS, 
-                                                  model=model, Forc=Forc_SS)
-      print(paste("Calculated Endogenous Production Rate:", model$parms["R_0bgli"]))
+      parms["R_0bgli"] = compute_endog_rate(c_data=eoparms$C_ven_SS, model=model, 
+                                           Forc=Forc_SS, rtol=rtol, atol=atol, 
+                                           method=method)
+      if (reportendog) print(paste("Calculated Endogenous Production Rate:", parms["R_0bgli"]))
     }
   }
+  
+  model$updateParms(parms) # Update model$parms based on parms from above.
+  model$updateY0(Y0) # Update model$Y0 based on Y0 from above.
   
   # Then, if there is an endogenous rate (may have been a set input), adjust 
   # the initial conditions to include what is at steady state
   if (model$parms["R_0bgli"] > 0.0){ 
-    Y0_SS = find_SS_noDose(model=model, Forc=Forc_SS)
-    model$Y0 <- update_vals(model$Y0, Y0_SS[Y0_SS>0])
-      # Revise *only* the initial states with the states that arise from the
-      # background exposure that are > 0 usin update_vals(). 
+    find_SS_noDose(model=model, Forc=Forc_SS, rtol=rtol, atol=atol, method=method)
   }
 
   # Run simulation using the actual exposure information. (Assume units in mg/L)
@@ -311,29 +313,34 @@ PBPK_run <- function(model=template, load=TRUE,
   return(out_df)
 }
 
-find_SS_noDose <- function(model, Forc){
+find_SS_noDose <- function(model, Forc, rtol=1e-8, atol=1e-8, method="lsoda"){
 # For use with background concentrations, find the steady state concentrations 
 # and the rate of endogenous production for 'model' given events df 'Forc'
   
   sparms <- model$parms # Save current set of model parameters
+  sY0 <- model$Y0 # Save current initial conditions
   # Set dosing parameters to zero so that only endogenous rate is being used
   p <- update_vals(p=sparms, np=c(iv_dose=0, oral_dose_init=0, Conc_init=0))
   # Recalculate dependent parameters based on new dosing parameters
   model$updateParms(p)
-  
-  t_data = c(0, 100*7*24)  # initial time value, 100 weeks in hours
+  model$updateY0()
+  t_data = c(0,2400); n=length(t_data)  # initial time value, 100 days in hours
   delta_SS = Inf
   while (delta_SS > 0.001){  # Check if at steady state (< 0.1% change)
-    out_SS1 <- model$runModel(times=t_data, forcings=Forc)
-    out_SS2 <- model$runModel(times=2*t_data, forcings=Forc)
-    delta_SS <- abs(out_SS1[2,"C_ven"]/out_SS2[2,"C_ven"] -1)
+    out_SS1 <- as.list(model$runModel(times=t_data, forcings=Forc,
+                                      rtol=rtol, atol=atol, method=method)[n,])
     t_data = t_data*2
+    out_SS2 <- as.list(model$runModel(times=t_data, forcings=Forc,
+                                      rtol=rtol, atol=atol, method=method)[n,])
+    delta_SS <- abs(out_SS1$C_ven/out_SS2$C_ven -1)
   }
-  model$updateParms(sparms) # Restore model parameters using saved values
-  return(out_SS1[-1, names(model$Y0)])
+  model$parms <- sparms # Restore model parameters using saved values
+  # Then set model$Y0 using saved Y0 
+  model$Y0 <- update_vals(sY0, out_SS2[names(out_SS2)%in%names(sY0[sY0==0]) & out_SS2>0])
 }
 
-compute_endog_rate <- function(model, c_data, Forc){
+compute_endog_rate <- function(model, c_data, Forc, rtol=1e-12, atol=1e-12, 
+                               method="lsoda"){
 # Function to compute endogenous rate of production necessary in 'model' to have 
 # concentration 'c_data' in venous blood at steady state given events df 'Forc'
   
@@ -346,11 +353,11 @@ compute_endog_rate <- function(model, c_data, Forc){
   model$updateY0()
 
   delta_SS = Inf
-  t_data <- c(0, 100*7*24) #initial value for time to reach SS, 100 weeks in h
+  t_data <- seq(0, 100*7*24, by=100) #initial value for time to reach SS, 100 weeks in h
+  nt=length(t_data)
   
   opt.theta.bounds = TRUE # is optimal theta value at search bounds
-  lower.bound = 1e-1
-  upper.bound = 1e1
+  lower.bound = 1e-1; upper.bound = 1e1
   
   while (delta_SS > 0.001){  # check for difference larger than 0.1%
     while (opt.theta.bounds){ # if optimal theta value is at search bounds
@@ -395,26 +402,23 @@ compute_endog_rate <- function(model, c_data, Forc){
     model$updateParms(p)
     model$updateY0()
     
-    out_SS1 <- as.data.frame(model$runModel(t_data, forcings=Forc))
+    out_SS1 <- model$runModel(t_data, forcings=Forc, rtol=rtol, atol=atol, method=method)[nt,"C_ven"]
     t_data <- t_data*2
-    out_SS2 <- as.data.frame(model$runModel(t_data, forcings = Forc))
-    
-    delta_SS <- abs(out_SS1[2,"C_ven"] - out_SS2[2,"C_ven"])/out_SS1[2,"C_ven"]
-    t_data = t_data*2
+    out_SS2 <- model$runModel(t_data, forcings=Forc, rtol=rtol, atol=atol, method=method)[nt,"C_ven"]
+    delta_SS <- abs(1 - out_SS1/out_SS2)
   } #end while (delta_SS > 0.01)
-  
+  model$updateParms(sparms)
   return(theta_opt)
 }
 
 endog_cost_fun <- function(theta, model, t_data, c_data, Forc, epsilon=1.0e-12){
 # Cost function used when computing the endogenous rate of production
-  
   model$parms["R_0bgli"] = theta[1]  # Set new parms values
   model$updateY0() # Update initial conditions
-  out = model$runModel(t_data, forcings=Forc) # Obtain model concentrations
-
+  out = model$runModel(t_data, forcings=Forc)#, rtol=1e-8, atol=1e-8, 
+                       #method="lsoda") # Obtain model concentrations
   # Compute sum of squared relative errors
-  SSE = sum(((c_data - out[-1, "C_ven"]) / (c_data + epsilon))**2)
+  SSE = sum(((c_data - tail(out[,"C_ven"],1)) / (c_data + epsilon))**2)
   return(SSE)
 }
 
