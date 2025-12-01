@@ -277,33 +277,18 @@ PBPK_run <- function(model=template, load=TRUE,
   
   # Address non-zero initial conditions due to endogenous production:
   
-  # Compute endogenous production rate and SS values based on initial BW, Free fraction in plasma 
-  Forc_SS <- list(cbind(times=c(0, tail(times,1)), BW_in=c(1,1)*parms["BW"]),
-                  cbind(times=c(0, tail(times,1)), Free_in=c(1,1)*parms["F_free"]))
-  
-  if (!is.null(eoparms$C_ven_SS)) {
+  if ((!is.null(eoparms$C_ven_SS))|(model$parms["R_0bgli"] > 0)) {
   # Determine initial states for cases of endogenous production when given by 
-  # a venous blood concentration at steady state. Assume no other exposure.
-  # **This is taken care of within the compute_endog_rate function and needs
-  # to be updated whenever new parameters that affect the initial states in
-  # the model are added.**
-    if (eoparms$C_ven_SS > 0.0) {
-      parms["R_0bgli"] = compute_endog_rate(c_data=eoparms$C_ven_SS, model=model, 
-                                           Forc=Forc_SS, rtol=rtol, atol=atol, 
-                                           method=method)
-      if (reportendog) print(paste("Calculated Endogenous Production Rate:", parms["R_0bgli"]))
-    }
+  # a venous blood concentration at steady state (SS) and otherwise determine
+  # the initial SS given a zero-order endogenous production rate. Assume no
+  # other exposure. **Setting of R_0bgli and Y0 is taken care of within the
+  # compute_endog_rate function.**
+    if (is.null(eoparms$C_ven_SS)) {targ=0} else {targ=eoparms$C_ven_SS}
+    compute_endog_rate(c_data=targ, model=model, rtol=rtol, atol=atol, method=method)
+    if (reportendog) print(paste("Calculated Endogenous Production Rate:", 
+                                 model$parms["R_0bgli"]))
   }
-  
-  model$updateParms(parms) # Update model$parms based on parms from above.
-  model$updateY0(Y0) # Update model$Y0 based on Y0 from above.
-  
-  # Then, if there is an endogenous rate (may have been a set input), adjust 
-  # the initial conditions to include what is at steady state
-  if (model$parms["R_0bgli"] > 0.0){ 
-    find_SS_noDose(model=model, Forc=Forc_SS, rtol=rtol, atol=atol, method=method)
-  }
-
+ 
   # Run simulation using the actual exposure information. (Assume units in mg/L)
   out = model$runModel(times=alltimes, forcings = Forc, events=list(data=df_dose),
                   rtol=rtol, atol=atol, method=method)
@@ -313,102 +298,86 @@ PBPK_run <- function(model=template, load=TRUE,
   return(out_df)
 }
 
-find_SS_noDose <- function(model, Forc, rtol=1e-8, atol=1e-8, method="lsoda"){
-# For use with background concentrations, find the steady state concentrations 
-# and the rate of endogenous production for 'model' given events df 'Forc'
-  
-  sparms <- model$parms # Save current set of model parameters
-  sY0 <- model$Y0 # Save current initial conditions
-  # Set dosing parameters to zero so that only endogenous rate is being used
-  p <- update_vals(p=sparms, np=c(iv_dose=0, oral_dose_init=0, Conc_init=0))
-  # Recalculate dependent parameters based on new dosing parameters
-  model$updateParms(p)
-  model$updateY0()
-  t_data = c(0,2400); n=length(t_data)  # initial time value, 100 days in hours
-  delta_SS = Inf
-  while (delta_SS > 0.001){  # Check if at steady state (< 0.1% change)
-    out_SS1 <- as.list(model$runModel(times=t_data, forcings=Forc,
-                                      rtol=rtol, atol=atol, method=method)[n,])
-    t_data = t_data*2
-    out_SS2 <- as.list(model$runModel(times=t_data, forcings=Forc,
-                                      rtol=rtol, atol=atol, method=method)[n,])
-    delta_SS <- abs(out_SS1$C_ven/out_SS2$C_ven -1)
-  }
-  model$parms <- sparms # Restore model parameters using saved values
-  # Then set model$Y0 using saved Y0 
-  model$Y0 <- update_vals(sY0, out_SS2[names(out_SS2)%in%names(sY0[sY0==0]) & out_SS2>0])
-}
-
-compute_endog_rate <- function(model, c_data, Forc, rtol=1e-12, atol=1e-12, 
+compute_endog_rate <- function(model, c_data=0, rtol=1e-12, atol=1e-12, 
                                method="lsoda"){
-# Function to compute endogenous rate of production necessary in 'model' to have 
+# Function to compute endogenous rate of production in 'model' needed to have 
 # concentration 'c_data' in venous blood at steady state given events df 'Forc'
   
-  sparms <- model$parms # Save current set of model parameters
-  # Set dosing parameters to zero so that only endogenous rate is being used
-  p <- update_vals(p=sparms, np=c(iv_dose=0, oral_dose_init=0, Conc_init=0))
-  
-  # Recalculate dependent parameters based on new dosing parameters
-  model$updateParms(p)
-  model$updateY0()
+  dparms = c("iv_dose","oral_dose_init","Conc_init"); Y0d = c("Q_cc","R_IV","R_oral")
+  sparms <- model$parms[dparms] # Save current set of model dosing parameters
+  sY0 <- model$Y0[Y0d]
+  # Set dosing parameters to zero so that only endogenous rate is being used:
+  model$parms[dparms] = 0
+  model$updateY0()  # Recalculate dependent parameters with zero dosing
 
   delta_SS = Inf
   t_data <- seq(0, 100*7*24, by=100) #initial value for time to reach SS, 100 weeks in h
   nt=length(t_data)
-  
-  opt.theta.bounds = TRUE # is optimal theta value at search bounds
-  lower.bound = 1e-1; upper.bound = 1e1
+  # Compute endogenous rate based on initial BW, Free fraction in plasma 
+  Forc <- list(cbind(times=c(0, t_data[nt]), BW_in=c(1,1)*model$parms["BW"]),
+               cbind(times=c(0, t_data[nt]), Free_in=c(1,1)*model$parms["F_free"]))
   
   while (delta_SS > 0.001){  # check for difference larger than 0.1%
-    while (opt.theta.bounds){ # if optimal theta value is at search bounds
-      # Initial guess for the parameter value
-      theta_init_all <- c(0.5, 1, 2.5)
-      cost_opt = Inf
+    
+    if (c_data) { # If cdata > 0 to match, first find and set endogenous rate
+      opt.theta.bounds = TRUE # is optimal theta value at search bounds
+      lower.bound = 1e-1; upper.bound = 1e1     
+      while (opt.theta.bounds){ # if optimal theta value is at search bounds
+        # Initial guess for the parameter value
+        theta_init_all <- c(0.5, 1, 2.5)
+        cost_opt = Inf
       
-      for(theta_init in theta_init_all){
-        opt_res = optim(par=theta_init, fn=endog_cost_fun, gr=NULL,
-                        t_data=t_data, c_data=c_data, model=model, Forc=Forc,
-                        method="Brent", lower=lower.bound, upper=upper.bound)  
+        for(theta_init in theta_init_all){
+          opt_res = optim(par=theta_init, fn=endog_cost_fun, gr=NULL,
+                          t_data=t_data, c_data=c_data, model=model, Forc=Forc,
+                          method="Brent", lower=lower.bound, upper=upper.bound)  
             # Need to check what to do about the search bounds...
         
-        #print("Cost for optimal parameter is ")
-        #print(opt_res$value)
-        #print("Optimal parameter is ")
-        #print(opt_res$par)
+            #print("Cost for optimal parameter is ")
+            #print(opt_res$value)
+            #print("Optimal parameter is ")
+            #print(opt_res$par)
         
-        if (opt_res$value < cost_opt) {
-          cost_opt = opt_res$value
-          theta_opt = opt_res$par
-        } #end if(opt_res$value < cost_opt)
-      } #end for(theta_init in theta_init_all)
+          if (opt_res$value < cost_opt) {
+            cost_opt = opt_res$value
+            theta_opt = opt_res$par
+          } #end if(opt_res$value < cost_opt)
+        } # end for(theta_init in theta_init_all)
       
-      if (abs(theta_opt-lower.bound) < 1e-3){
-        #print("theta is lower bound")
-        lower.bound = lower.bound*0.1
-      } else if (abs(theta_opt-upper.bound) < 1e-3){
-        #print("theta is upper bound")
-        upper.bound = upper.bound*10
-      } else {
-        #print("theta is neither bound")
-        opt.theta.bounds = FALSE
-      }
-      
-    } #end while (opt.theta.bounds)
+        if (abs(theta_opt-lower.bound) < 1e-3){
+          #print("theta is at lower bound")
+          lower.bound = lower.bound*0.1
+        } else if (abs(theta_opt-upper.bound) < 1e-3){
+          #print("theta is at upper bound")
+          upper.bound = upper.bound*10
+        } else {
+          #print("theta is at neither bound")
+          opt.theta.bounds = FALSE
+        }
+      } # end while (opt.theta.bounds)
+      model$parms["R_0bgli"] <- theta_opt
+     }  # end if (cdata)
     
     # Check if at steady state 
-    # Note, this does not check that the simulation is at the *target* 
-    # steady state concentration, only that it's at steady state.
-    p["R_0bgli"] <- theta_opt
-    model$updateParms(p)
-    model$updateY0()
-    
-    out_SS1 <- model$runModel(t_data, forcings=Forc, rtol=rtol, atol=atol, method=method)[nt,"C_ven"]
+    # Note, this does not check that the simulation is at the target steady
+    # state concentration, only that it's at steady state.
+    out_SS1 <- model$runModel(t_data, forcings=Forc, rtol=rtol, atol=atol,
+                              method=method)[nt,]
     t_data <- t_data*2
-    out_SS2 <- model$runModel(t_data, forcings=Forc, rtol=rtol, atol=atol, method=method)[nt,"C_ven"]
-    delta_SS <- abs(1 - out_SS1/out_SS2)
+    out_SS2 <- model$runModel(t_data, forcings=Forc, rtol=rtol, atol=atol,
+                              method=method)[nt,]
+    delta_SS <- abs(out_SS1["C_ven"]/out_SS2["C_ven"] -1)
   } #end while (delta_SS > 0.01)
-  model$updateParms(sparms)
-  return(theta_opt)
+  
+  model$parms[dparms] <- sparms  # Reset dosing parameters
+  model$updateY0()  # Recalculate dependent parameters with saved dosing
+  model$Y0[Y0d] <- sY0 # Reset initial Q_cc, R_iv and R_oral
+  # Full list of state variables that may be > 0 at the steady state
+  upnames = c("A_bl", "A_ven", "A_art", "A_lu", "A_gi", "A_li", "A_fst", "A_ki",
+              "A_fil", "A_ust", "A_tc1", "A_tc2", "A_tc3", "A_tc4", "A_tc5",
+              "A_om", "A_rb", "A_lib", "V_max_om_t", "V_max_li_t", "V_max_lu_t")
+  upnames <- names(which(out_SS2[upnames]>0)) # Subset of upnames for which out_SS2 > 0  
+  model$Y0[upnames] <- out_SS2[upnames]  # Assign these out_SS2 to model$Y0[upnames]
 }
 
 endog_cost_fun <- function(theta, model, t_data, c_data, Forc, epsilon=1.0e-12){
@@ -421,7 +390,6 @@ endog_cost_fun <- function(theta, model, t_data, c_data, Forc, epsilon=1.0e-12){
   SSE = sum(((c_data - tail(out[,"C_ven"],1)) / (c_data + epsilon))**2)
   return(SSE)
 }
-
 
 load.model.parameters <- function(filename, sheetname = NULL, parms){
 # Functions to set parameter values: model and exposure
