@@ -78,6 +78,8 @@ print(paste("Initial amount in GI lumen:",model$Y0[["A_glumen"]]))
 ### Check update of oral dose
   print(paste("Initial amount in GI lumen is now:",model$Y0[["A_glumen"]]))
   t_data = c(0,2400); n=length(t_data)  # initial time value, 100 days in hours
+  Forc <- list(cbind(times=c(0, max(t_data)), BW_in=c(1,1)*p["BW"]),
+               cbind(times=c(0, max(t_data)), Free_in=c(1,1)*p["F_free"]))
   delta_SS = Inf
   while (delta_SS > 0.001){  # Check if at steady state (< 0.1% change)
     out_SS1 <- as.list(model$runModel(times=t_data, forcings=Forc,
