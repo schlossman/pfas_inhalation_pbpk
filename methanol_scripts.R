@@ -3,6 +3,7 @@
 # This file contains functions to recreate results for the methanol model.
 #
 # Author: Amanda Bernstein, February 2021
+# Revisions for use with MCSimMod: Pau Schlosser, December 2025
 
 # Set working directory to the directory containing this file.
 script.dir = dirname(sys.frame(1)$ofile)
