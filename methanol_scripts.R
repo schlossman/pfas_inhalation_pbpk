@@ -26,7 +26,6 @@ pub.col5.1 <- vcol5[1]; pub.col5.2 <- vcol5[2]
 templ.col5.1 <- vcol5[4]; templ.col5.2 <- vcol5[5]
 pub.col7.1 <- vcol7[1]; pub.col7.2 <- vcol7[2]; pub.col7.3 <- vcol7[3]
 templ.col7.1 <- vcol7[5]; templ.col7.2 <- vcol7[6]; templ.col7.3 <- vcol7[7]
-
 pub.lty <- "dashed"; templ.lty <- "solid"
 
 methanol.IRIS.FigB3 <- function(){
@@ -57,7 +56,7 @@ methanol.IRIS.FigB3 <- function(){
                     model.param.sheetname = "IRIS_model_rat", 
                     exposure.param.filename = "MeOH_template_parameters_Exposure.xlsx", 
                     exposure.param.sheetname = "Ward_rat_iv_100",
-                    adj.parms = c(iv_dose=ii), data.times = sim2500$time)
+                    adj.parms = c(iv_dose=ii), data.times=sim2500$time)
     C_ven <- cbind(C_ven, out$C_ven) 
   }
   C_ven <- C_ven - bgd # Results with background subtracted
@@ -67,31 +66,27 @@ methanol.IRIS.FigB3 <- function(){
               max.diff(C_ven[match(sim100$time,out$time),1], (sim100$C_ven-bgd))))
   
   # Create Figure B3 from IRIS tox report
-  plot(NULL, type="n", log = "y", ylim = c(1,10000), xlim = c(0,50),
-       xlab = "Time (hr)", ylab = "Concentration of MeOH in Venous Blood (mg/L)")
+  # Note, simulations are plotted minus background concentration of 3 mg/L
+  par(mar=c(3,3,1,1), mgp=c(1.5,0.5,0))
+  plot(data100$time, data100$C_ven-bgd, col="black", log="y", ylim=c(1,10000), xlim=c(0,50),
+       xlab="Time (hr)", ylab="Concentration of MeOH in Venous Blood (mg/L)")
+  lines(out$time, C_ven[,1], col="black", lwd=2)
+  lines(sim100$time, sim100$C_ven-bgd, col="red", lty="dashed", lwd=2)
   
-  # Note, simulations are plotted with the background concentration of 3 mg/L in 
-  #  venous blood subtracted out
-  lines(out$time, C_ven[,1], col = "black", lwd = 2)
-  points(data100$time, data100$C_ven-bgd, col = "black")
-  lines(sim100$time, sim100$C_ven-bgd, col = "red", lty = "dashed", lwd = 2)
+  points(data500$time, data500$C_ven, col="darkgreen")
+  lines(out$time, C_ven[,2], col="darkgreen", lwd=2)
+  lines(sim500$time, sim500$C_ven-bgd, col="red", lty="dashed", lwd=2)
   
-  lines(out$time, C_ven[,2], col = "darkgreen", lwd = 2)
-  points(data500$time, data500$C_ven, col = "darkgreen")
-  lines(sim500$time, sim500$C_ven-bgd, col = "red", lty = "dashed", lwd = 2)
+  points(data2500$time, data2500$C_ven, col="blue")
+  lines(out$time, C_ven[,3], col="blue", lwd=2)
+  lines(sim2500$time, sim2500$C_ven-bgd, col="red", lty="dashed", lwd=2)
   
-  lines(out$time, C_ven[,3], col = "blue", lwd = 2)
-  points(data2500$time, data2500$C_ven, col = "blue")
-  lines(sim2500$time, sim2500$C_ven-bgd, col = "red", lty = "dashed", lwd = 2)
-  
-  legend("bottomright", legend = c("100 mg/kg", "500 mg/kg", "2500 mg/kg"),
+  legend("topright", legend = c("100 mg/kg", "500 mg/kg", "2500 mg/kg"),
          col = c("black", "darkgreen", "blue"), lty = c(1, 1, 1))
-  
 }
 
 methanol.IRIS.FigB4A <- function(img.name = NULL){
   # Creates manuscript Figure 4
-  #
   # Simulates female Sprague-Dawley rats exposed to a constant concentration of 
   # methanol via inhalation for 8 hours (end simulation after 8.5 hours)
   
@@ -134,26 +129,25 @@ methanol.IRIS.FigB4A <- function(img.name = NULL){
  
   # Create Figure B4, panel A from IRIS tox report
   if (!is.null(img.name)) tiff(img.name, res=300, height=5, width=6, units="in")
+  par(mar=c(3,3,1,1), mgp=c(1.5,0.5,0))
   plot(NULL, type="n", ylim=c(0,3700), yaxp=c(0,3600,6), xlim=c(0,8.3), xaxp=c(0,8,8),
-       xlab = "Time (hr)", ylab = "Concentration of MeOH in Venous Blood (mg/L)")
+       xlab = "Time (hr)", ylab="Concentration of MeOH in Venous Blood (mg/L)")
   # Simulations are plotted with the background concentration of 3 mg/L subtracted
   C_ven = C_ven-bgd; simB4A[,2:6] = simB4A[,2:6]-bgd
   for (i in 1:5){
-    lines(out$time, C_ven[,i], col = templ.col, lty = templ.lty, lwd = 3)
-    points(data[[i]]$V1, data[[i]]$V2, pch = 19, col = pub.col)
-    lines(simB4A$time, simB4A[,i+1], col = pub.col, lty = pub.lty, lwd = 2)
+    lines(out$time, C_ven[,i], col=templ.col, lty=templ.lty, lwd=3)
+    points(data[[i]]$V1, data[[i]]$V2, pch=19, col=pub.col)
+    lines(simB4A$time, simB4A[,i+1], col=pub.col, lty=pub.lty, lwd=2)
   }
- legend("topleft", legend = c("Published Data", "EPA IRIS Model", "Template Version"),
-         col = c(pub.col, pub.col, templ.col), lty = c(NA, pub.lty, templ.lty),
-         pch = c(19, NA, NA), lwd = c(1, 2, 3))
+ legend("topleft", col=c(pub.col, pub.col, templ.col), pch=c(19, NA, NA), 
+        legend=c("Published Data", "EPA IRIS Model", "Template Version"),
+         lty=c(NA, pub.lty, templ.lty), lwd=c(1, 2, 3))
   if (!is.null(img.name)) dev.off()
 }
 
 methanol.IRIS.FigB4B <- function(img.name = NULL){
-  # Creates manuscript Figure S-2
-  #
-  # Simulates female Sprague-Dawley rats exposed to a constant concentration of 
-  # methanol via inhalation for 8 hours
+  # Creates manuscript Figure S-2:  Simulates female Sprague-Dawley rats 
+  # exposed to a constant concentration of methanol via inhalation for 8 hours
   
   # Import data and IRIS simulations
   dat.conc = c(1000, 5000, 10000, 15000, 20000)
@@ -178,65 +172,56 @@ methanol.IRIS.FigB4B <- function(img.name = NULL){
   
   # Create Figure B4, panel B from IRIS tox report 
   if (!is.null(img.name)) tiff(img.name, res=300, height=5, width=6, units="in")
-  plot(NULL, type="n", ylim = c(1,4000), xlim = c(0,20000),
-       xlab = "Exposure Concentration (ppm)", 
-       ylab = "Concentration of MeOH in Venous Blood at 8 hr (mg/L)")
-  lines(concs, res, col = templ.col, lty = templ.lty, lwd = 3)
-  points(dat.conc, dat.cven, pch = 19, col = pub.col)
-  lines(simB4B$Conc, simB4B$C_ven, col = pub.col, lty = pub.lty, lwd = 2)
-  legend("topleft", legend = c("Published Data", "EPA IRIS Model", "Template Version"),
-        col = c(pub.col, pub.col, templ.col), lty = c(NA, pub.lty, templ.lty), 
-        pch = c(19, NA, NA), lwd = c(1, 2, 3))
+  par(mar=c(3,3,1,1), mgp=c(1.5,0.5,0))
+  plot(dat.conc, dat.cven, pch=19, col=pub.col, ylim=c(1,4000), xlim=c(0,20000),
+       xaxp=c(0,20000,5), xlab="Exposure Concentration (ppm)", 
+       ylab="Concentration of MeOH in Venous Blood at 8 hr (mg/L)")
+  lines(concs, res, col=templ.col, lty=templ.lty, lwd=3)
+  lines(simB4B$Conc, simB4B$C_ven, col=pub.col, lty=pub.lty, lwd=2)
+  legend("topleft", pch=c(19, NA, NA), lwd=c(1, 2, 3), 
+         legend=c("Published Data", "EPA IRIS Model", "Template Version"),
+         col=c(pub.col,pub.col,templ.col), lty=c(NA,pub.lty,templ.lty))
   if (!is.null(img.name)) dev.off()
 }
 
 methanol.IRIS.FigB5 <- function(img.name = NULL){
   # Creates manuscript Figure 5 (100 mg/kg dose) and Figure S-3 (2500 mg/kg dose)
-  #
   # Simulates female Sprague-Dawley rats exposed to an oral dose of methanol
   
   # Import data and IRIS simulations
   dataB5_2500 = read.csv(file = "Data/Data_Methanol/ratoral25.csv", header = FALSE)
   names(dataB5_2500) <- c("Time", "C_ven")
-  
   dataB5_100 = read.csv(file = "Data/Data_Methanol/ratoral1.csv", header = FALSE)
   names(dataB5_100) <- c("Time", "C_ven")
-  
   simB5_2500 <- read.csv(file = "Data/Data_Methanol/FigB5A.csv", header = FALSE)
   names(simB5_2500) <- c("Time_2gi", "C_ven_2gi", "Time_1gi", "C_ven_1gi")
-  
   simB5_100 <- read.csv(file = "Data/Data_Methanol/FigB5B.csv", header = FALSE)
   names(simB5_100) <- c("Time_2gi", "C_ven_2gi", "Time_1gi", "C_ven_1gi")
   
   # Read in background blood concentration for use in plotting
   bgd <- load.exposure.parameters(filename="MeOH_template_parameters_Exposure.xlsx",
                                   sheetname="Ward_oral_2500", parms=NULL)$other_parms$C_ven_SS
-  
   # Run simulations
   out2500_2gi <- PBPK_run(model.param.filename = "MeOH_template_parameters_Model.xlsx",
                     model.param.sheetname = "IRIS_model_rat_2gi",
                     exposure.param.filename = "MeOH_template_parameters_Exposure.xlsx", 
                     exposure.param.sheetname = "Ward_oral_2500",
                     data.times = simB5_2500$Time_2gi, reportendog = TRUE)
-  
   out2500_1gi <- PBPK_run(model.param.filename = "MeOH_template_parameters_Model.xlsx",
                           model.param.sheetname = "IRIS_model_rat_1gi",
                           exposure.param.filename = "MeOH_template_parameters_Exposure.xlsx", 
                           exposure.param.sheetname = "Ward_oral_2500",
                           data.times = simB5_2500$Time_1gi)
-  
   out100_2gi <- PBPK_run(model.param.filename = "MeOH_template_parameters_Model.xlsx",
                       model.param.sheetname = "IRIS_model_rat_2gi",
                       exposure.param.filename = "MeOH_template_parameters_Exposure.xlsx", 
                       exposure.param.sheetname = "Ward_oral_100",
                       data.times = simB5_100$Time_2gi)
-  
   out100_1gi <- PBPK_run(model.param.filename = "MeOH_template_parameters_Model.xlsx",
                          model.param.sheetname = "IRIS_model_rat_1gi",
                          exposure.param.filename = "MeOH_template_parameters_Exposure.xlsx", 
                          exposure.param.sheetname = "Ward_oral_100",
                          data.times = simB5_100$Time_1gi)
-  
   
   # Calculate error - percent difference between template and IRIS sims
   # Discard first data point at time = 0, C_ven = 0
@@ -257,101 +242,75 @@ methanol.IRIS.FigB5 <- function(img.name = NULL){
               max.diff(temp_res, simB5_100$C_ven_1gi)))
   
   # Create Figure B5, panel A from IRIS tox report 
-  if (!is.null(img.name)){
-    tiff(img.name, res=300, height=4, width=7, units="in")
-  }
-  
-  par(mfrow=c(1, 2), mar = c(6,2.5,0,0), oma = c(1,1,1,1), mgp=c(1.5,0.5,0))
-  plot(1,1, type="n", ylim = c(1,2700), xlim = c(0,55),
-       xlab = "Time (hr)", ylab = "Venous Blood Concentration (mg/L)")
+  if (!is.null(img.name)) tiff(img.name, res=300, height=4, width=7, units="in")
+  par(mfrow=c(1,2), mar=c(6,2.75,0,0), oma=c(1,0.5,1,1), mgp=c(1.5,0.5,0))
+  plot(dataB5_2500$Time, dataB5_2500$C_ven, pch=19, col=pub.col, xlim=c(0,55),
+       ylim=c(1,2700), xlab="Time (hr)", ylab="Venous Blood Concentration (mg/L)")
   # Simulations are plotted minus the background concentration of 3 mg/L
-  lines(out2500_2gi$time, out2500_2gi$C_ven-bgd, col = templ.col5.1, lty = templ.lty, lwd = 3)
-  lines(out2500_1gi$time, out2500_1gi$C_ven-bgd, col = templ.col5.2, lty = templ.lty, lwd = 3)
-  points(dataB5_2500[["Time"]], dataB5_2500[["C_ven"]], pch = 19, col = pub.col)
-  lines(simB5_2500[["Time_2gi"]], simB5_2500[["C_ven_2gi"]]-bgd, col = pub.col5.1, lty = pub.lty, lwd = 2)
-  lines(simB5_2500[["Time_1gi"]], simB5_2500[["C_ven_1gi"]]-bgd, col = pub.col5.2, lty = "dotdash", lwd = 2)
-  legend("bottomleft", xpd = TRUE, inset = c(0.2, -.25), bty = "n",
-         legend = c("Published Data", "EPA IRIS Model - 2 GI", "EPA IRIS Model - 1 GI"),
-         col = c(pub.col, pub.col5.1, pub.col5.2),
-         lty = c(NA, pub.lty, "dotdash"), 
-         pch = c(19, NA, NA), lwd = c(1, 2, 2))#, text.width = textwidths)
+  lines(out2500_2gi$time, out2500_2gi$C_ven-bgd, col=templ.col5.1, lty=templ.lty, lwd=3)
+  lines(out2500_1gi$time, out2500_1gi$C_ven-bgd, col=templ.col5.2, lty=templ.lty, lwd=3)
+  lines(simB5_2500$Time_2gi, simB5_2500$C_ven_2gi-bgd, col=pub.col5.1, lty=pub.lty, lwd=2)
+  lines(simB5_2500$Time_1gi, simB5_2500$C_ven_1gi-bgd, col=pub.col5.2, lty="dotdash", lwd=2)
+  legend("bottomleft", xpd=TRUE, inset=c(0.2, -.25), bty="n",
+         legend=c("Published Data", "EPA IRIS Model - 2 GI", "EPA IRIS Model - 1 GI"),
+         col=c(pub.col, pub.col5.1, pub.col5.2), lty=c(NA, pub.lty, "dotdash"), 
+         pch=c(19, NA, NA), lwd=c(1, 2, 2))#, text.width=textwidths)
   
   # Create Figure B5, panel B from IRIS tox report 
-  plot(1,1, type="n", ylim = c(1,100), xlim = c(0,8),
-       xlab = "Time (hr)", ylab = "Venous Blood Concentration (mg/L)")
+  plot(dataB5_100$Time, dataB5_100$C_ven, pch=19, col=pub.col, ylim=c(1,100),
+       xlim=c(0,8), xlab="Time (hr)", ylab="Venous Blood Concentration (mg/L)")
   # Simulations are plotted minus the background concentration of 3 mg/L in 
-  lines(out100_2gi$time, out100_2gi$C_ven-bgd, col = templ.col5.1, lty = templ.lty, lwd = 3)
-  lines(out100_1gi$time, out100_1gi$C_ven-bgd, col = templ.col5.2, lty = templ.lty, lwd = 3)
-  points(dataB5_100[["Time"]], dataB5_100[["C_ven"]], pch = 19, col = pub.col)
-  lines(simB5_100[["Time_2gi"]], simB5_100[["C_ven_2gi"]]-bgd, col = pub.col5.1, lty = pub.lty, lwd = 2)
-  lines(simB5_100[["Time_1gi"]], simB5_100[["C_ven_1gi"]]-bgd, col = pub.col5.2, lty = "dotdash", lwd = 2)
-  legend("bottomright", xpd = TRUE, inset = c(0.2, -0.25), bty = "n",
-         legend = c("Template Version - 2 GI", "Template Version - 1 GI"),
-         col = c(templ.col5.1, templ.col5.2), 
-         lty = c(templ.lty, templ.lty), 
-         pch = c(NA, NA), lwd = c(3, 3))
-  
-  if (!is.null(img.name)){
-    dev.off()
-  }
+  lines(out100_2gi$time, out100_2gi$C_ven-bgd, col=templ.col5.1, lty=templ.lty, lwd=3)
+  lines(out100_1gi$time, out100_1gi$C_ven-bgd, col=templ.col5.2, lty=templ.lty, lwd=3)
+  lines(simB5_100$Time_2gi, simB5_100$C_ven_2gi-bgd, col=pub.col5.1, lty=pub.lty, lwd=2)
+  lines(simB5_100$Time_1gi, simB5_100$C_ven_1gi-bgd, col=pub.col5.2, lty="dotdash", lwd=2)
+  legend("bottomright", xpd=TRUE, inset=c(0.2, -0.25), bty="n", pch=c(NA, NA),
+         legend=c("Template Version - 2 GI", "Template Version - 1 GI"),
+         col=c(templ.col5.1, templ.col5.2), lty=c(templ.lty, templ.lty), lwd=c(3,3))
+  if (!is.null(img.name)) dev.off()
   
   # Create just high dose figure
   if (!is.null(img.name)){
-    sub.img.name <- paste(img.name, "_high.tiff", sep = "")
+    sub.img.name <- paste(img.name, "_high.tiff", sep="")
     tiff(sub.img.name, res=300, height=5, width=6, units="in")
   }
-  
-  par(old.par)
-  
-  plot(1,1, type="n", ylim = c(1,2700), xlim = c(0,55),
-       xlab = "Time (hr)", ylab = "Venous Blood Concentration (mg/L)")
-  
+  par(old.par); par(mar=c(3,3,1,1), mgp=c(1.5,0.5,0))
+  plot(dataB5_2500$Time, dataB5_2500$C_ven, pch=19, col=pub.col, xlim=c(0,55), 
+       ylim=c(1,2700), xlab="Time (hr)", ylab="Venous Blood Concentration (mg/L)")
   # Note, simulations are plotted with the background concentration of 3 mg/L in 
   #  venous blood subtracted out
-  lines(out2500_2gi$time, out2500_2gi$C_ven-bgd, col = templ.col5.1, lty = templ.lty, lwd = 3)
-  lines(out2500_1gi$time, out2500_1gi$C_ven-bgd, col = templ.col5.2, lty = templ.lty, lwd = 3)
-  points(dataB5_2500$Time, dataB5_2500$C_ven, pch = 19, col = pub.col)
-  lines(simB5_2500$Time_2gi, simB5_2500$C_ven_2gi-bgd, col = pub.col5.1, lty = pub.lty, lwd = 2)
-  lines(simB5_2500$Time_1gi, simB5_2500$C_ven_1gi-bgd, col = pub.col5.2, lty = "dotdash", lwd = 2)
+  lines(out2500_2gi$time, out2500_2gi$C_ven-bgd, col=templ.col5.1, lty=templ.lty, lwd=3)
+  lines(out2500_1gi$time, out2500_1gi$C_ven-bgd, col=templ.col5.2, lty=templ.lty, lwd=3)
+  lines(simB5_2500$Time_2gi, simB5_2500$C_ven_2gi-bgd, col=pub.col5.1, lty=pub.lty, lwd=2)
+  lines(simB5_2500$Time_1gi, simB5_2500$C_ven_1gi-bgd, col=pub.col5.2, lty="dotdash", lwd=2)
   
-  legend("topright", legend = c("Published Data", "EPA IRIS Model - 2 GI", "EPA IRIS Model - 1 GI", "Template Version - 2 GI", "Template Version - 1 GI"),
-         col = c(pub.col, pub.col5.1, pub.col5.2, templ.col5.1, templ.col5.2), 
-         lty = c(NA, pub.lty, "dotdash", templ.lty, templ.lty), 
-         pch = c(19, NA, NA, NA, NA), lwd = c(1, 2, 2, 3, 3))
-  
-  if (!is.null(img.name)){
-    dev.off()
-  }
+  legend("topright", lty=c(NA,pub.lty,"dotdash",templ.lty,templ.lty), pch=c(19,NA,NA,NA,NA),
+         col=c(pub.col,pub.col5.1,pub.col5.2,templ.col5.1,templ.col5.2), lwd=c(1,2,2,3,3),   
+         legend=c("Published Data", "EPA IRIS Model - 2 GI", "EPA IRIS Model - 1 GI", 
+                  "Template Version - 2 GI", "Template Version - 1 GI"))
+  if (!is.null(img.name)) dev.off()
   
   #Create just low dose figure
   if (!is.null(img.name)){
-    sub.img.name <- paste(img.name, "_low.tiff", sep = "")
+    sub.img.name <- paste(img.name, "_low.tiff", sep="")
     tiff(sub.img.name, res=300, height=5, width=6, units="in")
   }
-  
-  par(old.par)
-  
-  plot(1,1, type="n", ylim = c(1,100), xlim = c(0,8),
-       xlab = "Time (hr)", ylab = "Venous Blood Concentration (mg/L)")
-  
+  par(old.par); par(mar=c(3,3,1,1), mgp=c(1.5,0.5,0))
+  plot(dataB5_100$Time, dataB5_100$C_ven, pch=19, col=pub.col, ylim=c(1,100),
+       xlim=c(0,8), xlab="Time (hr)", ylab="Venous Blood Concentration (mg/L)")
   # Note, simulations are plotted with the background concentration of 3 mg/L in 
   #  venous blood subtracted out
-  lines(out100_2gi$time, out100_2gi$C_ven-bgd, col = templ.col5.1, lty = templ.lty, lwd = 3)
-  lines(out100_1gi$time, out100_1gi$C_ven-bgd, col = templ.col5.2, lty = templ.lty, lwd = 3)
-  points(dataB5_100$Time, dataB5_100$C_ven, pch = 19, col = pub.col)
-  lines(simB5_100$Time_2gi, simB5_100$C_ven_2gi-bgd, col = pub.col5.1, lty = pub.lty, lwd = 2)
-  lines(simB5_100$Time_1gi, simB5_100$C_ven_1gi-bgd, col = pub.col5.2, lty = "dotdash", lwd = 2)
+  lines(out100_2gi$time, out100_2gi$C_ven-bgd, col=templ.col5.1, lty=templ.lty, lwd=3)
+  lines(out100_1gi$time, out100_1gi$C_ven-bgd, col=templ.col5.2, lty=templ.lty, lwd=3)
+  lines(simB5_100$Time_2gi, simB5_100$C_ven_2gi-bgd, col=pub.col5.1, lty=pub.lty, lwd=2)
+  lines(simB5_100$Time_1gi, simB5_100$C_ven_1gi-bgd, col=pub.col5.2, lty="dotdash", lwd=2)
   
-  legend("topright", legend = c("Published Data", "EPA IRIS Model - 2 GI", "EPA IRIS Model - 1 GI", "Template Version - 2 GI", "Template Version - 1 GI"),
-         col = c(pub.col, pub.col5.1, pub.col5.2, templ.col5.1, templ.col5.2), 
-         lty = c(NA, pub.lty, "dotdash", templ.lty, templ.lty), 
-         pch = c(19, NA, NA, NA, NA), lwd = c(1, 2, 2, 3, 3))
-  
-  if (!is.null(img.name)){
-    dev.off()
-  }
-  
-  
+  legend(legend=c("Published Data", "EPA IRIS Model - 2 GI","EPA IRIS Model - 1 GI", 
+                  "Template Version - 2 GI", "Template Version - 1 GI"), 
+         col=c(pub.col, pub.col5.1, pub.col5.2, templ.col5.1, templ.col5.2), 
+         lty=c(NA, pub.lty, "dotdash", templ.lty, templ.lty), 
+         pch=c(19,NA,NA,NA,NA), lwd=c(1,2,2,3,3),"topright")
+  if (!is.null(img.name)) dev.off()
 }
 
 methanol.IRIS.FigB7 <- function(img.name = NULL){
@@ -376,195 +335,159 @@ methanol.IRIS.FigB7 <- function(img.name = NULL){
   simB8_tot <- read.csv(file = "Data/Data_Methanol/FigB8tot.csv", header = FALSE)
   names(simB8_tot) <- c("Time", "A_urine_231", "Time2", "A_urine_157", "Time3", "A_urine_78")
   
-  
   # Run simulations
-  sim.time <- c(simB8_conc[["Time"]])
   out231 <- PBPK_run(model.param.filename = "MeOH_template_parameters_Model.xlsx",
                      model.param.sheetname = "IRIS_model_human",
                      exposure.param.filename = "MeOH_template_parameters_Exposure.xlsx", 
                      exposure.param.sheetname = "Sedivec_inh_231ppm",
-                     data.times = sim.time)
+                     data.times = simB8_conc$Time)
+  out231$C_urine = out231$R_urine/(70*0.5e-3)
   
   out157 <- PBPK_run(model.param.filename = "MeOH_template_parameters_Model.xlsx",
                      model.param.sheetname = "IRIS_model_human",
                      exposure.param.filename = "MeOH_template_parameters_Exposure.xlsx", 
                      exposure.param.sheetname = "Sedivec_inh_157ppm",
-                     data.times = sim.time)
+                     data.times = simB8_conc$Time)
+  out157$C_urine = out157$R_urine/(70*0.5e-3)
   
   out78 <- PBPK_run(model.param.filename = "MeOH_template_parameters_Model.xlsx",
                     model.param.sheetname = "IRIS_model_human",
                     exposure.param.filename = "MeOH_template_parameters_Exposure.xlsx", 
                     exposure.param.sheetname = "Sedivec_inh_78ppm",
-                    data.times = sim.time)
+                    data.times = simB8_conc$Time)
+  out78$C_urine = out78$R_urine/(70*0.5e-3)
   
   # Calculate error - percent difference between template and IRIS sims
-  #ntimes = length(simB8_conc[["Time"]])
-  err231 = max(abs(perc.diff(model = out231$R_urine/(70*0.5e-3), 
-                             data = simB8_conc[["C_urine_231"]])))
-  print(paste0("Max. percent difference for 231 ppm: ", err231))
-  
-  err157 = max(abs(perc.diff(model = out157$R_urine/(70*0.5e-3), 
-                             data = simB8_conc[["C_urine_157"]])))
-  print(paste0("Max. percent difference for 157 ppm: ", err157))
-  
-  err78 = max(abs(perc.diff(model = out78$R_urine/(70*0.5e-3), 
-                             data = simB8_conc[["C_urine_78"]])))
-  print(paste0("Max. percent difference for 78 ppm: ", err78))
-  
+  print(paste("Max. percent difference for 231 ppm:", 
+              max.diff(out231$C_urine, simB7_231$C_urine)))
+  print(paste("Max. percent difference for 157 ppm:", 
+              max.diff(out157$C_urine, simB8_conc$C_urine_157)))
+  print(paste("Max. percent difference for 78 ppm:", 
+              max.diff(out78$C_urine, simB8_conc$C_urine_78)))
   
   # Figure B7
-  if (!is.null(img.name)){
-    tiff(img.name, res=300, height=6, width=6, units="in")
-  }
-  
+  if (!is.null(img.name))  tiff(img.name, res=300, height=6, width=6, units="in")
   # Put extra space in the margins to the right of the plot
   old.par <- par(no.readonly = TRUE)
-  par(mfrow=c(2, 1), mar=c(4, 4, 1, 19) + 0.1)
+  par(mfrow=c(2, 1), mar=c(3, 3, 1, 17), mgp=c(1.7,0.7,0))
   
   #First axes - urine concentrations
-  plot(NULL, type="n", xlim = c(0,24), xlab = "Time (hr)",
-     ylim = c(0,10), ylab = "Urine Concentration (mg/L)")
-  
-  lines(out231$time.hr, out231$R_urine/(70*0.5e-3), col = templ.col7.1, lty = templ.lty, lwd = 3)
-  lines(simB7_231[["Time"]], simB7_231[["C_urine"]], col = pub.col7.1, lty = pub.lty, lwd = 2)
-  points(dataB7_231[["Time"]], dataB7_231[["C_urine_wbg"]], pch = 19, col = pub.col)
+  plot(dataB7_231$Time, dataB7_231$C_urine_wbg, pch=19, col=pub.col, xlim=c(0,24), 
+       xaxp=c(0,24,6), xlab="Time (hr)", ylim=c(0,10), ylab="Urine Concentration (mg/L)")
+  lines(out231$time, out231$C_urine, col=templ.col7.1, lty=templ.lty, lwd=3)
+  lines(simB7_231$Time, simB7_231$C_urine, col=pub.col7.1, lty=pub.lty, lwd=2)
+  points(dataB7_231$Time, dataB7_231$C_urine_wbg, pch = 19, col = pub.col)
   
   #Second axes on same plot - tissue concentrations
   par(new = TRUE)
-  plot(NULL, type="n", axes = FALSE, xlim = c(0,24), ylim = c(0,7.7), xlab = "", ylab = "")
+  plot(NULL, type="n", axes=FALSE, xlim=c(0,24), ylim=c(0,7.7), xlab="", ylab="")
   axis(4, ylim=c(0,7.7), col="black",col.axis="black",las=1)
-  mtext("Tissue Concentration (mg/L)",side=4,col="black",line=3) 
-  
-  lines(out231$time.hr, out231$C_ven, col = templ.col7.2, lty = templ.lty, lwd = 3)
-  lines(out231$time.hr, out231$C_rb, col = templ.col7.3, lty = templ.lty, lwd = 3)
-  lines(simB7_231[["Time"]], simB7_231[["C_ven"]], col = pub.col7.2, lty = pub.lty, lwd = 2)
-  lines(simB7_231[["Time"]], simB7_231[["C_rb"]], col = pub.col7.3, lty = pub.lty, lwd = 2)
+  mtext("Tissue Concentration (mg/L)",side=4,col="black",line=1.2) 
+  lines(out231$time, out231$C_ven, col=templ.col7.2, lty=templ.lty, lwd=3)
+  lines(out231$time, out231$C_rb, col=templ.col7.3, lty=templ.lty, lwd=3)
+  lines(simB7_231$Time, simB7_231$C_ven, col=pub.col7.2, lty=pub.lty, lwd=2)
+  lines(simB7_231$Time, simB7_231$C_rb, col=pub.col7.3, lty=pub.lty, lwd=2)
   
   # # Figure B8 - upper panel
-  # par(old.par)
-  plot(NULL, type="n", xlim = c(0,24), xlab = "Time (hr)",
-      ylim = c(0,10), ylab = "Urine Concentration (mg/L)")
-  
-  lines(out231$time.hr, out231$R_urine/(70*0.5e-3), col = templ.col7.1, lwd = 3)
-  lines(simB8_conc[["Time"]], simB8_conc[["C_urine_231"]], col = pub.col7.1, lty = pub.lty, lwd = 2)
-  points(dataB7_231[["Time"]], dataB7_231[["C_urine_wbg"]], pch = 19, col = pub.col7.1)
+  plot(dataB7_231$Time, dataB7_231$C_urine_wbg, pch=19, col=pub.col7.1, xlim=c(0,24), 
+       xaxp=c(0,24,6), xlab="Time (hr)", ylim=c(0,10), ylab="Urine Concentration (mg/L)")
+  lines(out231$time, out231$C_urine, col=templ.col7.1, lwd=3)
+  lines(simB8_conc$Time, simB8_conc$C_urine_231, col=pub.col7.1, lty=pub.lty, lwd=2)
 
-  lines(out157$time.hr, out157$R_urine/(70*0.5e-3), col = templ.col7.2, lwd = 3)
-  lines(simB8_conc[["Time"]], simB8_conc[["C_urine_157"]], col = pub.col7.2, lty = pub.lty, lwd = 2)
-  points(dataB7_157[["Time"]], dataB7_157[["C_urine_wbg"]], pch = 19, col = pub.col7.2)
+  points(dataB7_157$Time, dataB7_157$C_urine_wbg, pch=19, col=pub.col7.2)
+  lines(out157$time, out157$C_urine, col=templ.col7.2, lwd=3)
+  lines(simB8_conc$Time, simB8_conc$C_urine_157, col=pub.col7.2, lty=pub.lty, lwd=2)
 
-  lines(out78$time.hr, out78$R_urine/(70*0.5e-3), col = templ.col7.3, lwd = 3)
-  lines(simB8_conc[["Time"]], simB8_conc[["C_urine_78"]], col = pub.col7.3, lty = pub.lty, lwd = 2)
-  points(dataB7_78[["Time"]], dataB7_78[["C_urine_wbg"]], pch = 19, col = pub.col7.3)
+  points(dataB7_78$Time, dataB7_78$C_urine_wbg, pch=19, col=pub.col7.3)
+  lines(out78$time, out78$R_urine/(70*0.5e-3), col=templ.col7.3, lwd=3)
+  lines(simB8_conc$Time, simB8_conc$C_urine_78, col=pub.col7.3, lty=pub.lty, lwd=2)
 
   # Add legends for both plots
-  par(mfrow = c(1,1), oma = c(0, 0, 0, 2), mar = c(0, 0, 0, 0), new = TRUE)
-  plot(0, 0, type = "n", bty = "n", xaxt = "n", yaxt = "n")
-
+  par(mfrow=c(1,1), oma=c(0,0,0,2), mar=c(0,0,0,0), new=TRUE)
+  plot(0, 0, type="n", bty="n", xaxt="n", yaxt="n")
   # Legend for top plot
-  legend("topright", xpd = TRUE, inset = c(-0.0, 0.05), bty = "n",
-         legend = c("Published Urine Data", "EPA IRIS Model - Urine", "EPA IRIS Model - Blood", "EPA IRIS Model - Body", 
-                    "Template Version - Urine", "Template Version - Blood", "Template Version - Body"),
-         col = c(pub.col, pub.col7.1, pub.col7.2, pub.col7.3, templ.col7.1, templ.col7.2, templ.col7.3), 
-         lty = c(NA, pub.lty, pub.lty, pub.lty, templ.lty, templ.lty, templ.lty),
-         lwd = c(1, 2, 2, 2, 3, 3, 3), pch = c(19, NA, NA, NA, NA, NA, NA))
+  legend("topright", xpd=TRUE, inset=c(-0.01, 0.1), bty="n",
+         legend=c("Published Urine Data", "EPA IRIS Model - Urine", 
+                    "EPA IRIS Model - Blood", "EPA IRIS Model - Body", 
+                    "Template Version - Urine", "Template Version - Blood", 
+                    "Template Version - Body"),
+         col=c(pub.col, pub.col7.1, pub.col7.2, pub.col7.3, templ.col7.1, 
+                 templ.col7.2, templ.col7.3), 
+         lty=c(NA, pub.lty, pub.lty, pub.lty, templ.lty, templ.lty, templ.lty),
+         lwd=c(1,2,2,2,3,3,3), pch=c(19,NA,NA,NA,NA,NA,NA))
   
   # Legend for bottom plot
-  legend("bottomright", xpd = TRUE, inset = c(-0.0, 0.175), bty = "n",
-         legend = c("Published Urine Data", 
+  legend("bottomright", xpd=TRUE, inset=c(0, 0.175), bty="n",
+         legend=c("Published Urine Data", 
                     "EPA IRIS Model - 231 ppm", "EPA IRIS Model - 157 ppm",
                     "EPA IRIS Model - 78 ppm", "Template Version - 231 ppm",
                     "Template Version - 157 ppm", "Template Version - 78 ppm"),
-         col = c(pub.col, pub.col7.1, pub.col7.2, pub.col7.3,
+         col=c(pub.col, pub.col7.1, pub.col7.2, pub.col7.3,
                  templ.col7.1, templ.col7.2, templ.col7.3),
-         lty = c(NA, pub.lty, pub.lty, pub.lty, templ.lty, templ.lty, templ.lty),
-         lwd = c(1, 2, 2, 2, 3, 3, 3), pch = c(19, NA, NA, NA, NA, NA, NA))
-  
-  if (!is.null(img.name)){
-    dev.off()
-  }
+         lty=c(NA, pub.lty, pub.lty, pub.lty, templ.lty, templ.lty, templ.lty),
+         lwd=c(1,2,2,2,3,3,3), pch=c(19,NA,NA,NA,NA,NA,NA))
+  if (!is.null(img.name)) dev.off()
   
   #Create just B-7
   if (!is.null(img.name)){
-    sub.img.name <- paste(img.name, "_all.tiff", sep = "")
+    sub.img.name <- paste(img.name, "_all.tiff", sep="")
     tiff(sub.img.name, res=300, height=5, width=7, units="in")
   }
-  
   # Put extra space in the margins to the right of the plot
-  par(old.par)
-  par(mar=c(4, 5, 3, 5) + 0.1)
-  
+  par(old.par); par(mar=c(3, 3, 0.5, 3), mgp=c(1.7,0.7,0))
   #First axes - urine concentrations
-  plot(NULL, type="n", xlim = c(0,24), xlab = "Time (hr)",
-       ylim = c(0,10), ylab = "Urine Concentration (mg/L)")
-  
-  lines(out231$time.hr, out231$R_urine/(70*0.5e-3), col = templ.col7.1, lty = templ.lty, lwd = 3)
-  lines(simB7_231[["Time"]], simB7_231[["C_urine"]], col = pub.col7.1, lty = pub.lty, lwd = 2)
-  points(dataB7_231[["Time"]], dataB7_231[["C_urine_wbg"]], pch = 19, col = pub.col)
-  
+  plot(dataB7_231$Time, dataB7_231$C_urine_wbg, pch=19, col=pub.col, xlim=c(0,24), 
+       xaxp=c(0,24,6), xlab="Time (hr)", ylim=c(0,10), ylab="Urine Concentration (mg/L)")
+  lines(out231$time, out231$R_urine/(70*0.5e-3), col=templ.col7.1, lty=templ.lty, lwd=3)
+  lines(simB7_231$Time, simB7_231$C_urine, col=pub.col7.1, lty=pub.lty, lwd=2)
+
   #Second axes on same plot - tissue concentrations
-  par(new = TRUE)
-  plot(NULL, type="n", axes = FALSE, xlim = c(0,24), ylim = c(0,7.7), xlab = "", ylab = "")
+  par(new=TRUE)
+  plot(NULL, type="n", axes=FALSE, xlim=c(0,24), ylim=c(0,7.7), xlab="", ylab="")
   axis(4, ylim=c(0,7.7), col="black",col.axis="black",las=1)
-  mtext("Tissue Concentration (mg/L)",side=4,col="black",line=3) 
+  mtext("Tissue Concentration (mg/L)",side=4,col="black",line=1.2) 
+  lines(out231$time, out231$C_ven, col=templ.col7.2, lty=templ.lty, lwd=3)
+  lines(out231$time, out231$C_rb, col=templ.col7.3, lty=templ.lty, lwd=3)
+  lines(simB7_231$Time, simB7_231$C_ven, col=pub.col7.2, lty=pub.lty, lwd=2)
+  lines(simB7_231$Time, simB7_231$C_rb, col=pub.col7.3, lty=pub.lty, lwd=2)
   
-  lines(out231$time.hr, out231$C_ven, col = templ.col7.2, lty = templ.lty, lwd = 3)
-  lines(out231$time.hr, out231$C_rb, col = templ.col7.3, lty = templ.lty, lwd = 3)
-  lines(simB7_231[["Time"]], simB7_231[["C_ven"]], col = pub.col7.2, lty = pub.lty, lwd = 2)
-  lines(simB7_231[["Time"]], simB7_231[["C_rb"]], col = pub.col7.3, lty = pub.lty, lwd = 2)
-  
-  legend("topright",
-         legend = c("Published Urine Data", "EPA IRIS Model - Urine", "EPA IRIS Model - Blood", "EPA IRIS Model - Body", 
-                    "Template Version - Urine", "Template Version - Blood", "Template Version - Body"),
-         col = c(pub.col, pub.col7.1, pub.col7.2, pub.col7.3, templ.col7.1, templ.col7.2, templ.col7.3), 
-         lty = c(NA, pub.lty, pub.lty, pub.lty, templ.lty, templ.lty, templ.lty),
-         lwd = c(1, 2, 2, 2, 3, 3, 3), pch = c(19, NA, NA, NA, NA, NA, NA))
-  
-  if (!is.null(img.name)){
-    dev.off()
-  }
-  
+  legend("topright", lwd=c(1,2,2,2,3,3,3), pch=c(19,NA,NA,NA,NA,NA,NA),
+         legend=c("Published Urine Data", "EPA IRIS Model - Urine",
+                  "EPA IRIS Model - Blood", "EPA IRIS Model - Body", 
+                  "Template Version - Urine", "Template Version - Blood", 
+                  "Template Version - Body"),
+         col=c(pub.col,pub.col7.1,pub.col7.2,pub.col7.3,templ.col7.1,
+               templ.col7.2,templ.col7.3), 
+         lty=c(NA,pub.lty,pub.lty,pub.lty,templ.lty,templ.lty,templ.lty))
+  if (!is.null(img.name)) dev.off()
   
   # Create just Figure B8 - upper panel
-  par(old.par)
-  
+  par(old.par); par(mar=c(3, 3, 0.5, 1), mgp=c(1.7,0.7,0))
   if (!is.null(img.name)){
-    sub.img.name <- paste(img.name, "_urine.tiff", sep = "")
+    sub.img.name <- paste(img.name, "_urine.tiff", sep="")
     tiff(sub.img.name, res=300, height=5, width=6, units="in")
   }
+  plot(dataB7_231$Time, dataB7_231$C_urine_wbg, pch=19, col=pub.col, xlim=c(0,24), 
+       xaxp=c(0,24,6), xlab="Time (hr)", ylim=c(0,10), ylab="Urine Concentration (mg/L)")
+  lines(out231$time, out231$R_urine/(70*0.5e-3), col=templ.col, lwd=3)
+  lines(simB8_conc$Time, simB8_conc$C_urine_231, col=pub.col, lty=pub.lty, lwd=2)
   
-  plot(NULL, type="n", xlim = c(0,24), xlab = "Time (hr)",
-       ylim = c(0,10), ylab = "Urine Concentration (mg/L)")
+  lines(out157$time, out157$R_urine/(70*0.5e-3), col=templ.col, lwd=3)
+  lines(simB8_conc$Time, simB8_conc$C_urine_157, col=pub.col, lty=pub.lty, lwd=2)
+  points(dataB7_157$Time, dataB7_157$C_urine_wbg, pch=19, col=pub.col)
   
-  lines(out231$time.hr, out231$R_urine/(70*0.5e-3), col = templ.col, lwd = 3)
-  lines(simB8_conc[["Time"]], simB8_conc[["C_urine_231"]], col = pub.col, lty = pub.lty, lwd = 2)
-  points(dataB7_231[["Time"]], dataB7_231[["C_urine_wbg"]], pch = 19, col = pub.col)
+  lines(out78$time, out78$R_urine/(70*0.5e-3), col=templ.col, lwd=3)
+  lines(simB8_conc$Time, simB8_conc$C_urine_78, col=pub.col, lty=pub.lty, lwd=2)
+  points(dataB7_78$Time, dataB7_78$C_urine_wbg, pch=19, col=pub.col)
   
-  lines(out157$time.hr, out157$R_urine/(70*0.5e-3), col = templ.col, lwd = 3)
-  lines(simB8_conc[["Time"]], simB8_conc[["C_urine_157"]], col = pub.col, lty = pub.lty, lwd = 2)
-  points(dataB7_157[["Time"]], dataB7_157[["C_urine_wbg"]], pch = 19, col = pub.col)
-  
-  lines(out78$time.hr, out78$R_urine/(70*0.5e-3), col = templ.col, lwd = 3)
-  lines(simB8_conc[["Time"]], simB8_conc[["C_urine_78"]], col = pub.col, lty = pub.lty, lwd = 2)
-  points(dataB7_78[["Time"]], dataB7_78[["C_urine_wbg"]], pch = 19, col = pub.col)
-  
-  legend("topright",
+  legend("topright", lty=c(NA,pub.lty,templ.lty), lwd=c(1,2,3), pch=c(19,NA,NA),
          legend = c("Published Data", "EPA IRIS Model", "Template Version"),
-         col = c(pub.col, pub.col, templ.col),
-         lty = c(NA, pub.lty, templ.lty),
-         lwd = c(1, 2, 3), pch = c(19, NA, NA))
-  
-  if (!is.null(img.name)){
-    dev.off()
-  }
-  
-  
+         col = c(pub.col, pub.col, templ.col))
+  if (!is.null(img.name)) dev.off()
 }
 
 methanol.IRIS.FigB11 <- function(img.name = NULL){
-  # Creates manuscript Figure 7
-  #
-  # Simulates humans exposed via an oral dose
+  # Creates manuscript Figure 7: Simulates humans exposed via an oral dose
   
   # Import data and IRIS simulations
   data = read.csv(file = "Data/Data_Methanol/Schmutte_88_Fig1.csv", header = FALSE)
@@ -572,92 +495,63 @@ methanol.IRIS.FigB11 <- function(img.name = NULL){
   sim = read.csv(file = "Data/Data_Methanol/Fig_B11_sim.csv", header = FALSE)
   names(sim) <- c("Time", "C_ven")
   
-  
   # Run simulation
   out <- PBPK_run(model.param.filename = "MeOH_template_parameters_Model.xlsx",
                   model.param.sheetname = "IRIS_model_human",
                   exposure.param.filename = "MeOH_template_parameters_Exposure.xlsx", 
                   exposure.param.sheetname = "Schmutte_oral_human",
-                  data.times = sim[["Time"]])
-  
+                  data.times = sim$Time)
   
   # Calculate error - percent difference between template and IRIS sims
-  err = max(abs(perc.diff(model = out$C_ven, data = sim[["C_ven"]])))
-  print(paste0("Max. percent difference: ", err))
+  print(paste("Max. percent difference:", max.diff(out$C_ven,sim$C_ven)))
   
   # Figure B11
-  if (!is.null(img.name)){
-    tiff(img.name, res=300, height=5, width=6, units="in")
-  }
-  
-  plot(NULL, type="n", xlim = c(0,1.6), xlab = "Time (hr)",
-       ylim = c(0,10), ylab = "Blood Concentration (mg/L)")
-  
-  lines(out$time.hr, out$C_ven, col = templ.col, lty = templ.lty, lwd = 2)
-  lines(sim[["Time"]], sim[["C_ven"]], col = pub.col, lty = pub.lty, lwd = 3)
-  points(data[["Time"]], data[["C_ven"]], pch = 19, col = pub.col)
-  
-  legend("bottomright", 
+  if (!is.null(img.name)) tiff(img.name, res=300, height=5, width=6, units="in")
+  par(mar=c(3,3,0.5,1), mgp=c(1.7,0.7,0))
+  plot(data$Time, data$C_ven, pch=19, col=pub.col, xlim=c(0,1.6), xaxp=c(0,1.6,8),
+       xlab="Time (hr)", ylim=c(0,10), ylab="Blood Concentration (mg/L)")
+  lines(out$time, out$C_ven, col = templ.col, lty = templ.lty, lwd = 2)
+  lines(sim$Time, sim$C_ven, col = pub.col, lty = pub.lty, lwd = 3)
+  legend("bottomright", lty=c(NA, pub.lty, templ.lty), pch=c(19, NA, NA),
          legend = c("Published Data", "EPA IRIS Model", "Template Version"),
-         col = c(pub.col, pub.col, templ.col), lwd = c(1, 2, 3),
-         lty = c(NA, pub.lty, templ.lty), pch = c(19, NA, NA))
-  
-  if (!is.null(img.name)){
-    dev.off()
-  }
-  
+         col = c(pub.col, pub.col, templ.col), lwd = c(1, 2, 3))
+  if (!is.null(img.name)) dev.off()
 }
 
 methanol.IRIS.FigB13 <- function(img.name = NULL){
-  # Creates manuscript Figure 8
-  #
-  # Simulates humans exposed via an iv dose
+  # Creates manuscript Figure 8: Simulates humans exposed via an iv dose
   
   # Import data and IRIS simulations
   data = read.csv(file = "Data/Data_Methanol/Haffner_92_Fig1.csv", header = FALSE)
-  names(data) <- c("Time", "C_venA")
-  C_venB=16.5*exp(-0.325*data[["Time"]])
-  C_venC=14.8*exp(-0.406*data[["Time"]])
-  C_venD=17.8*exp(-0.475*data[["Time"]])
+  names(data) <- c("Time", "C_venA"); C_venB=16.5*exp(-0.325*data$Time)
+  C_venC=14.8*exp(-0.406*data$Time); C_venD=17.8*exp(-0.475*data$Time)
   sim = read.csv(file = "Data/Data_Methanol/Fig_B13_sim.csv", header = FALSE)
   names(sim) <- c("Time", "C_ven")
-  
   
   # Run simulations
   out <- PBPK_run(model.param.filename = "MeOH_template_parameters_Model.xlsx",
                   model.param.sheetname = "IRIS_model_human",
                   exposure.param.filename = "MeOH_template_parameters_Exposure.xlsx", 
                   exposure.param.sheetname = "Haffner_iv_human",
-                  data.times = sim[["Time"]])
+                  data.times = sim$Time)
   
   # Calculate error - percent difference between template and IRIS sims
-  err = max(abs(perc.diff(model = out$C_ven, data = sim[["C_ven"]])))
-  print(paste0("Max. percent difference: ", err))
+  print(paste("Max. percent difference: ", max.diff(out$C_ven, sim$C_ven)))
   
   # Create Figure B13 from IRIS tox report
-  if (!is.null(img.name)){
-    tiff(img.name, res=300, height=5, width=6, units="in")
-  }
-  
-  plot(NULL, type="n", xlim = c(0,5), xlab = "Time (hr)",
-       ylim = c(1,100), ylab = "Blood Concentration (mg/L)", log = "y")
-  
-  lines(out$time.hr, out$C_ven, col = templ.col, lty = templ.lty, lwd = 2)
-  lines(sim[["Time"]], sim[["C_ven"]], col = pub.col, lty = pub.lty, lwd = 3)
-  points(data[["Time"]], data[["C_venA"]], col = pub.col, pch = 1)
-  points(data[["Time"]], C_venB, col = pub.col, pch = 0)
-  points(data[["Time"]], C_venC, col = pub.col, pch = 5)
-  points(data[["Time"]], C_venD, col = pub.col, pch = 2)
-  
-  legend("topright", 
+  if (!is.null(img.name)) tiff(img.name, res=300, height=5, width=6, units="in")
+  par(mar=c(3,3,0.5,1), mgp=c(1.7,0.7,0))
+  plot(data$Time, data$C_venA, col=pub.col, pch=1, xlim=c(0,5), xaxp=c(0,5,10), 
+       xlab="Time (hr)", ylim=c(1,110), ylab="Blood Concentration (mg/L)", log="y")
+  lines(out$time, out$C_ven, col = templ.col, lty = templ.lty, lwd = 2)
+  lines(sim$Time, sim$C_ven, col = pub.col, lty = pub.lty, lwd = 3)
+  points(data$Time, C_venB, col = pub.col, pch = 0)
+  points(data$Time, C_venC, col = pub.col, pch = 5)
+  points(data$Time, C_venD, col = pub.col, pch = 2)
+  legend("topright", lwd = c(1, 1, 1, 1, 2, 3), pch = c(1, 0, 5, 2, NA, NA),
          legend = c("Published Data A", "Published Data B", "Published Data C", 
                     "Published Data D", "EPA IRIS Model", "Template Version"),
          col = c(pub.col, pub.col, pub.col, pub.col, pub.col, templ.col), 
-         lty = c(NA, NA, NA, NA, pub.lty, templ.lty), 
-         lwd = c(1, 1, 1, 1, 2, 3), pch = c(1, 0, 5, 2, NA, NA))
-  
-  if (!is.null(img.name)){
-    dev.off()
-  }
-  
+         lty = c(NA, NA, NA, NA, pub.lty, templ.lty))
+  if (!is.null(img.name)) dev.off()
 }

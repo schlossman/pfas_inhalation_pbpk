@@ -303,9 +303,9 @@ compute_endog_rate <- function(model, c_data=0, rtol=1e-12, atol=1e-12,
 # Function to compute endogenous rate of production in 'model' needed to have 
 # concentration 'c_data' in venous blood at steady state given events df 'Forc'
   
-  dparms = c("iv_dose","oral_dose_init","Conc_init"); Y0d = c("Q_cc","R_IV","R_oral")
+  dparms = c("iv_dose","oral_dose_init","Conc_init","Conc_ambient")
   sparms <- model$parms[dparms] # Save current set of model dosing parameters
-  sY0 <- model$Y0[Y0d]
+  Y0d = c("Q_cc","R_IV","R_oral"); sY0 <- model$Y0[Y0d]
   # Set dosing parameters to zero so that only endogenous rate is being used:
   model$parms[dparms] = 0
   model$updateY0()  # Recalculate dependent parameters with zero dosing
