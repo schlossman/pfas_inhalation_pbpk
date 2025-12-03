@@ -48,7 +48,7 @@ update_vals <- function(p, np, stopifwarned=FALSE){
   for (n in names(np)){
     if (n%in%names(p)){
       p[n] <- as.numeric(np[n])
-    } else { warning(paste0("'",n,"' in list np is not in list p.")) }
+    } else { warning(paste0("Parameter '",n,"' in list np is not in list p.")) }
   }
   if (stopifwarned & any(!names(np)%in%names(p))) {stop()}
   return(p)
@@ -90,7 +90,7 @@ PBPK_run <- function(model=template, load=TRUE,
   
   # Load the dll file unless user specifies not to do so
   if (load) model$loadModel()
-  model$updateParms()
+  model$updateParms() # Reset all parameters to default values in the .model file.
   # Adjust default parameters by importing from given excel file
   mparms <- load.model.parameters(filename=model.param.filename,
                                   sheetname=model.param.sheetname, model$parms)
@@ -110,6 +110,7 @@ PBPK_run <- function(model=template, load=TRUE,
       neo <- n%in%names(eoparms) # Look for ones in eoparms
       nex <- n%in%names(exp_parms) # Look for ones in exp_parms
       np <- n%in%names(parms) # Look for ones in eoparms
+      # update_vals(p, np) only revises values in p that have values in np:
       if (any(neo)) eoparms <- update_vals(eoparms, adj.parms[n[neo]])
       if (any(nex)) exp_parms <- update_vals(exp_parms, adj.parms[n[nex]])
       if (any(np)) parms <- update_vals(parms, adj.parms[np])
@@ -272,6 +273,10 @@ PBPK_run <- function(model=template, load=TRUE,
     alltimes =sort(unique(c(times,df_dose$time)))
   }
   
+  # *** Note ***: the $update...() functions reset parms and Y0 values to their
+  # default (initial) values *except* those passed in the respective arguments.
+  # Hence,subsequent use of these will "forget" the values set in the current
+  # parms and Y0 unless those are included in the subsequent function calls.
   model$updateParms(parms) # Update model$parms based on parms from above.
   model$updateY0(Y0) # Update model$Y0 based on Y0 from above.
   
@@ -308,7 +313,9 @@ compute_endog_rate <- function(model, c_data=0, rtol=1e-12, atol=1e-12,
   Y0d = c("Q_cc","R_IV","R_oral"); sY0 <- model$Y0[Y0d]
   # Set dosing parameters to zero so that only endogenous rate is being used:
   model$parms[dparms] = 0
-  model$updateY0()  # Recalculate dependent parameters with zero dosing
+  model$updateY0()  # Recalculate dependent initial conditions with zero dosing
+      # *** Any non-default Y0 values previously set will be over-ridden and 
+      # otherwise "forgotten" by this function call.
 
   delta_SS = Inf
   t_data <- seq(0, 100*7*24, by=100) #initial value for time to reach SS, 100 weeks in h
@@ -371,7 +378,9 @@ compute_endog_rate <- function(model, c_data=0, rtol=1e-12, atol=1e-12,
   
   model$parms[dparms] <- sparms  # Reset dosing parameters
   model$updateY0()  # Recalculate dependent parameters with saved dosing
-  model$Y0[Y0d] <- sY0 # Reset initial Q_cc, R_iv and R_oral
+    # *** Any non-default Y0 values previously set are over-ridden and 
+    # otherwise "forgotten" by this function call.
+  model$Y0[Y0d] <- sY0 # Reset Y0 (initial) Q_cc, R_iv and R_oral from saved.
   # Full list of state variables that may be > 0 at the steady state
   upnames = c("A_bl", "A_ven", "A_art", "A_lu", "A_gi", "A_li", "A_fst", "A_ki",
               "A_fil", "A_ust", "A_tc1", "A_tc2", "A_tc3", "A_tc4", "A_tc5",
@@ -382,8 +391,8 @@ compute_endog_rate <- function(model, c_data=0, rtol=1e-12, atol=1e-12,
 
 endog_cost_fun <- function(theta, model, t_data, c_data, Forc, epsilon=1.0e-12){
 # Cost function used when computing the endogenous rate of production
-  model$parms["R_0bgli"] = theta[1]  # Set new parms values
-  model$updateY0() # Update initial conditions
+  model$parms["R_0bgli"] = theta[1]  # Set test value for endogenous production.
+    # No other parameters and no Y0 values depend on R_0bgli.
   out = model$runModel(t_data, forcings=Forc)#, rtol=1e-8, atol=1e-8, 
                        #method="lsoda") # Obtain model concentrations
   # Compute sum of squared relative errors
@@ -558,27 +567,32 @@ load.exposure.parameters <- function(filename, sheetname = NULL, parms){
 }
 
 # Error analysis functions
-perc.diff <- function(model, data, tol=1e-6){
-  # Compute absolute percent difference between model and data values relative to data
-  perc.diff <- abs(100*(1-model/(data+tol/1000))*((data-model)>tol))
-  return(perc.diff)
+perc.diff <- function(model, data, sc=NULL){
+  # Compute absolute percent differences between model and data values relative
+  # to a scale, sc, which may be a scalar or the length of the data vector.
+  # If no sc is given (default = NULL), then 
+  # sc = data + (smallest nonzero data value)/1e6 (to avoid divide-by-zero). 
+  if (is.null(sc)) sc = data + min(abs(data[data!=0]))/1e6
+  return(abs(100*(data-model)/sc))
 }
 
-max.diff <- function(model, data, tol=1e-6){
-  # Compute maximum absolute percent difference between model and data values relative to data
-  return(round(max(perc.diff(model, data, tol)),2))
+max.diff <- function(model, data, rd=3){
+  # Compute maximum absolute percent difference between model and data values
+  # relative to data, rounded to rd significant figures (default rd = 3).
+  return(round(max(perc.diff(model, data)), rd))
 }
 # 
-perc.diff.scale <- function(model, data, fig.scale){
-  # Compute absolute percent difference between model and data values relative to scale 
-  # of the digitized figure
-  perc.diff <- abs(100*(model-data)/fig.scale)
-  return(perc.diff)
+max.diff.scale <- function(model, data, rd=3, sc=1){
+  # Compute maximum absolute percent difference between model and data values
+  # relative to a provided scale, sc (default = 1), rounded to rd significant
+  # figures (default rd = 3). sc can be a scalar, e.g., the scale of a
+  # digitized figure, or a vector of length of the data. 
+  return(round(max(perc.diff(model, data, sc=sc)), rd))
 }
 # 
-perc.diff.calc <- function(model, data, tol=1e-6){
-  # Compute absolute percent difference between two models 
-  # (relative to the average value of the models)
-  perc.diff.calc <- abs(200*(model-data)*((data-model)>tol)/(model+data+tol/1000))
-  return(perc.diff.calc)
+max.diff.calc <- function(model, data, rd=3){
+  # Compute maximum absolute percent difference between two models relative to
+  # the average value of the model and data, rounded to rd significant figures
+  # (default rd = 3).
+  return(max.diff.scale(model, data, rd=rd, scale=(model+data)/2))
 }

@@ -1,6 +1,7 @@
 # Styrene PBPK model by Ramsey and Andersen (1984)
 # Model template simulations 
 # Author: Amanda Bernstein, US EPA (ORISE), January 2023
+# Revisions for use with MCSimMod: Pau Schlosser, December 2025
 
 # Set working directory to the directory containing this file.
 script.dir = dirname(sys.frame(1)$ofile)
@@ -16,199 +17,149 @@ source("run_template_model.R")
 vcol3 = c("#440154FF", "#2A788EFF", "#7AD151FF") # viridis(3, begin = 0.0, end = 0.8)
 vcol5 = c("#440154FF", "#414487FF", "#2A788EFF", "#22A884FF", "#7AD151FF") # viridis(5, begin = 0.0, end = 0.8)
 
-pub.col <- vcol3[2]
-templ.col <- vcol3[3]
+pub.col <- vcol3[2]; pub.col5.1 <- vcol5[1]; pub.col5.2 <- vcol5[2]
+templ.col <- vcol3[3]; templ.col5.1 <- vcol5[4]; templ.col5.2 <- vcol5[5]
+pub.lty <- "dashed"; templ.lty <- "solid"
 
-pub.col5.1 <- vcol5[1]
-pub.col5.2 <- vcol5[2]
-templ.col5.1 <- vcol5[4]
-templ.col5.2 <- vcol5[5]
-
-pub.lty <- "dashed"
-templ.lty <- "solid"
-
-# Figure 2: Inhalation exposure for rats
 styrene.fig2 <- function(img.name = NULL){
   # Figure 2: 6-hour inhalation exposure for rats
   
-  # Load Data
-  data80ppm = read.csv(file = "Data/Data_Styrene/fig2a_80ppm.csv", header = TRUE)
-  data200ppm = read.csv(file = "Data/Data_Styrene/fig2b_200ppm.csv", header = TRUE)
-  data600ppm = read.csv(file = "Data/Data_Styrene/fig2c_600ppm.csv", header = TRUE)
-  data1200ppm = read.csv(file = "Data/Data_Styrene/fig2d_1200ppm.csv", header = TRUE)
-  
-  times <- list(c(0,data80ppm$time_blood_sim[!is.na(data80ppm$time_blood_sim)]), 
-                c(0,data200ppm$time_blood_sim[!is.na(data200ppm$time_blood_sim)]), 
-                c(0,data600ppm$time_blood_sim[!is.na(data600ppm$time_blood_sim)]),
-                c(0,data1200ppm$time_blood_sim[!is.na(data1200ppm$time_blood_sim)]))
-  
+  # Load Data, then get time/blood conc subsets that are not NA
+  d_80 = read.csv(file ="Data/Data_Styrene/fig2a_80ppm.csv", header = TRUE)
+    tb_80 = !is.na(d_80$time_blood_sim)
+    cb_80 = d_80$blood_sim[tb_80]
+    tb_80 = d_80$time_blood_sim[tb_80]
+  d_200 = read.csv(file ="Data/Data_Styrene/fig2b_200ppm.csv", header = TRUE)
+    tb_200 = !is.na(d_200$time_blood_sim)
+    cb_200 = d_200$blood_sim[tb_200]
+    tb_200 = d_200$time_blood_sim[tb_200] 
+  d_600 = read.csv(file ="Data/Data_Styrene/fig2c_600ppm.csv", header = TRUE)
+    tb_600 = !is.na(d_600$time_blood_sim)
+    cb_600 = d_600$blood_sim[tb_600]
+    tb_600 = d_600$time_blood_sim[tb_600] 
+  d_1200 = read.csv(file ="Data/Data_Styrene/fig2d_1200ppm.csv", header = TRUE)
+    tb_1200 = !is.na(d_1200$time_blood_sim)
+    cb_1200 = d_1200$blood_sim[tb_1200]
+    tb_1200 = d_1200$time_blood_sim[tb_1200] 
+
   # Set up simulation runs
-  conc = c(80,200,600,1200)
+  times <- sort(unique(c(0, tb_80, tb_200, tb_600, tb_1200)))
+  C_art <- C_fat <- NULL
   
-  idx = 1
-  out.times <- list()
-  conc.art <- list()
-  conc.fat <- list()
-  for (ii in conc){ #for each concentration
+  for (ii in c(80,200,600,1200)){ #for each concentration
     out <- PBPK_run(model.param.filename = "Styrene_template_parameters_Model.xlsx",
                     model.param.sheetname = "rat", 
                     exposure.param.filename = "Styrene_template_parameters_Exposure.xlsx", 
                     exposure.param.sheetname = "inhalation_Fig2", 
-                    adj.parms = c(Conc_init = ii), data.times = times[[idx]])
-    
-    out.times[[idx]] <- out$time.hr
-    conc.art[[idx]] <- out$C_art
-    conc.fat[[idx]] <- out$C_tc1
-    idx = idx + 1
+                    adj.parms = c(Conc_init = ii), data.times = times)
+    C_art <- cbind(C_art, out$C_art)
+    C_fat <- cbind(C_fat, out$C_tc1)
   }
   
   # Calculate error - percent difference between template and published sims
-  print("Percent differences are calculated relative to the scale of the digitized figure.")
-  v=match(data80ppm$time_blood_sim,out.times[[1]])
-  err.80ppm = max(abs(perc.diff.scale(model = conc.art[[1]][v], 
-                                data = data80ppm$blood_sim, fig.scale = 100)), na.rm = TRUE)
-  print(paste0("Max. percent difference for 80 ppm: ", err.80ppm))
-  
-  v=match(data200ppm$time_blood_sim,out.times[[2]])
-  err.200ppm = max(abs(perc.diff.scale(model = conc.art[[2]][v], 
-                                 data = data200ppm$blood_sim, fig.scale = 1000)), na.rm = TRUE)
-  print(paste0("Max. percent difference for 200 ppm: ", err.200ppm))
-  
-  v=match(data600ppm$time_blood_sim,out.times[[3]])
-  err.600ppm = max(abs(perc.diff.scale(model = conc.art[[3]][v], 
-                                 data = data600ppm$blood_sim, fig.scale = 10000)), na.rm = TRUE)
-  print(paste0("Max. percent difference for 600 ppm: ", err.600ppm))
-  
-  v=match(data1200ppm$time_blood_sim,out.times[[4]])
-  err.1200ppm = max(abs(perc.diff.scale(model = conc.art[[4]][v], 
-                                  data = data1200ppm$blood_sim, fig.scale = 10000)), na.rm = TRUE)
-  print(paste0("Max. percent difference for 1200 ppm: ", err.1200ppm))
-  
-  
+  print("Percent differences are calculated relative to the scale of the digitized figures.")
+  print(paste("Max. percent difference for 80 ppm:", 
+              max.diff.scale(C_art[match(tb_80,times),1], cb_80, sc=100) ))
+  print(paste("Max. percent difference for 200 ppm:", 
+              max.diff.scale(C_art[match(tb_200,times),2], cb_200, sc=1000) ))
+  print(paste("Max. percent difference for 600 ppm:", 
+              max.diff.scale(C_art[match(tb_600,times),3], cb_600, sc=10000) ))
+  print(paste("Max. percent difference for 1200 ppm:", 
+              max.diff.scale(C_art[match(tb_1200,times),4], cb_1200, sc=10000) ))
+ 
   # Recreate Figure 2 from Ramsey and Andersen (1984)
-  if (!is.null(img.name)){
-    tiff(img.name, res=300, height=6, width=7, units="in")
-  }
+  if (!is.null(img.name)) tiff(img.name, res=300, height=6, width=7, units="in")
   
-  par(mfrow=c(2, 2), mar = c(5, 5, 0, 0), oma = c(3, 1, 1, 1))
+  par(mfrow=c(2,2), mar=c(3,3,0,0), oma=c(4,0,1,1), mgp=c(1.5,0.5,0))
   # 80 ppm
-  plot(1,1, type = "n", log = "y", 
-       xlab = "Time (hr)", ylab = "Concentration (mg/L)",
-       xlim = c(0,24), ylim = c(0.0001, 100))
-  
-  lines(out.times[[1]], conc.art[[1]], col = templ.col5.1, lty = templ.lty, lwd = 3)
-  lines(out.times[[1]], conc.fat[[1]], col = templ.col5.2, lty = templ.lty, lwd = 3)
-  points(data80ppm$time_blood_data, data80ppm$blood_data, pch = 19, col = pub.col)
-  points(data80ppm$time_fat_data, data80ppm$fat_data, pch = 17, col = pub.col)
-  lines(data80ppm$time_blood_sim, data80ppm$blood_sim, col = pub.col5.1, lty = pub.lty, lwd = 2)
-  lines(data80ppm$time_fat_sim, data80ppm$fat_sim, col = pub.col5.2, lty = "dotdash", lwd = 2)
+  plot(d_80$time_blood_data, d_80$blood_data, pch=19, col=pub.col, 
+       log="y", xlab="Time (hr)", xlim=c(0,24), xaxp=c(0,24,6), 
+       ylab="Concentration (mg/L)", ylim=c(0.0001, 100))
+  lines(times, C_art[,1], col = templ.col5.1, lty = templ.lty, lwd = 3)
+  lines(times, C_fat[,1], col = templ.col5.2, lty = templ.lty, lwd = 3)
+  points(d_80$time_fat_data, d_80$fat_data, pch = 17, col = pub.col)
+  lines(tb_80, cb_80, col = pub.col5.1, lty = pub.lty, lwd = 2)
+  lines(d_80$time_fat_sim, d_80$fat_sim, col = pub.col5.2, lty ="dotdash", lwd = 2)
   title("80 ppm", line = -1.25)
   
   # 200 ppm
-  plot(1,1, type = "n", log = "y", 
-       xlab = "Time (hr)", ylab = "Concentration (mg/L)",
-       xlim = c(0,24), ylim = c(0.001, 1000))
-  
-  lines(out.times[[2]], conc.art[[2]], col = templ.col5.1, lty = templ.lty, lwd = 3)
-  lines(out.times[[2]], conc.fat[[2]], col = templ.col5.2, lty = templ.lty, lwd = 3)
-  points(data200ppm$time_blood_data, data200ppm$blood_data, pch = 19, col = pub.col)
-  points(data200ppm$time_fat_data, data200ppm$fat_data, pch = 17, col = pub.col)
-  lines(data200ppm$time_blood_sim, data200ppm$blood_sim, col = pub.col5.1, lty = pub.lty, lwd = 2)
-  lines(data200ppm$time_fat_sim, data200ppm$fat_sim, col = pub.col5.2, lty = "dotdash", lwd = 2)
+  plot(d_200$time_blood_data, d_200$blood_data, pch=19, col=pub.col, 
+       log="y", xlab="Time (hr)", xlim=c(0,24), xaxp=c(0,24,6), 
+       ylab="Concentration (mg/L)", ylim=c(0.001, 1000))
+  lines(times, C_art[,2], col = templ.col5.1, lty = templ.lty, lwd = 3)
+  lines(times, C_fat[,2], col = templ.col5.2, lty = templ.lty, lwd = 3)
+  points(d_200$time_fat_data, d_200$fat_data, pch = 17, col = pub.col)
+  lines(d_200$time_blood_sim, d_200$blood_sim, col=pub.col5.1, lty=pub.lty, lwd=2)
+  lines(d_200$time_fat_sim, d_200$fat_sim, col=pub.col5.2, lty="dotdash", lwd=2)
   title("200 ppm", line = -1.25)
   
   # 600 ppm
-  plot(1,1, type = "n", log = "y", 
-       xlab = "Time (hr)", ylab = "Concentration (mg/L)",
-       xlim = c(0,24), ylim = c(0.01, 10000))
-  
-  lines(out.times[[3]], conc.art[[3]], col = templ.col5.1, lty = templ.lty, lwd = 3)
-  lines(out.times[[3]], conc.fat[[3]], col = templ.col5.2, lty = templ.lty, lwd = 3)
-  points(data600ppm$time_blood_data, data600ppm$blood_data, pch = 19, col = pub.col)
-  points(data600ppm$time_fat_data, data600ppm$fat_data, pch = 17, col = pub.col)
-  lines(data600ppm$time_blood_sim, data600ppm$blood_sim, col = pub.col5.1, lty = pub.lty, lwd = 2)
-  lines(data600ppm$time_fat_sim, data600ppm$fat_sim, col = pub.col5.2, lty = "dotdash", lwd = 2)
+  plot(d_600$time_blood_data, d_600$blood_data, pch=19, col=pub.col, 
+       log="y", xlab="Time (hr)", xlim=c(0,24), xaxp=c(0,24,6), 
+       ylab="Concentration (mg/L)", ylim=c(0.01, 10000))
+  lines(times, C_art[,3], col = templ.col5.1, lty = templ.lty, lwd = 3)
+  lines(times, C_fat[,3], col = templ.col5.2, lty = templ.lty, lwd = 3)
+  points(d_600$time_fat_data, d_600$fat_data, pch = 17, col = pub.col)
+  lines(tb_600, cb_600, col = pub.col5.1, lty = pub.lty, lwd = 2)
+  lines(d_600$time_fat_sim, d_600$fat_sim, col = pub.col5.2, lty ="dotdash", lwd = 2)
   title("600 ppm", line = -1.25)
   
   # 1200 ppm
-  plot(1,1, type = "n", log = "y", 
-       xlab = "Time (hr)", ylab = "Concentration (mg/L)",
-       xlim = c(0,24), ylim = c(0.01, 10000))
-  
-  lines(out.times[[4]], conc.art[[4]], col = templ.col5.1, lty = templ.lty, lwd = 3)
-  lines(out.times[[4]], conc.fat[[4]], col = templ.col5.2, lty = templ.lty, lwd = 3)
-  points(data1200ppm$time_blood_data, data1200ppm$blood_data, pch = 19, col = pub.col)
-  points(data1200ppm$time_fat_data, data1200ppm$fat_data, pch = 17, col = pub.col)
-  lines(data1200ppm$time_blood_sim, data1200ppm$blood_sim, col = pub.col5.1, lty = pub.lty, lwd = 2)
-  lines(data1200ppm$time_fat_sim, data1200ppm$fat_sim, col = pub.col5.2, lty = "dotdash", lwd = 2)
+  plot(d_1200$time_blood_data, d_1200$blood_data, pch=19, col=pub.col, 
+       log="y", xlab="Time (hr)", xlim=c(0,24), xaxp=c(0,24,6), 
+       ylab="Concentration (mg/L)", ylim=c(0.01, 10000))
+  lines(times, C_art[,4], col = templ.col5.1, lty = templ.lty, lwd = 3)
+  lines(times, C_fat[,4], col = templ.col5.2, lty = templ.lty, lwd = 3)
+  points(d_1200$time_fat_data, d_1200$fat_data, pch = 17, col = pub.col)
+  lines(d_1200$time_blood_sim, d_1200$blood_sim, col = pub.col5.1, lty = pub.lty, lwd = 2)
+  lines(d_1200$time_fat_sim, d_1200$fat_sim, col = pub.col5.2, lty ="dotdash", lwd = 2)
   title("    1200 ppm", line = -1.25)
   
   par(mfrow = c(1,1), oma = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), new = TRUE)
-  plot(0, 0, type = "n", bty = "n", xaxt = "n", yaxt = "n")
+  plot(0, 0, type ="n", bty ="n", xaxt ="n", yaxt ="n")
   
-  legend("bottomleft", 
+  legend("bottomleft", xpd = TRUE, inset = c(0.12, 0), bty = "n", 
          legend = c("Published Data - blood", "Published Model - blood",
                     "Template Version - blood"),
-         xpd = TRUE, inset = c(0.12, 0), bty = "n", #horiz = TRUE,
-         col = c(pub.col, pub.col5.1, templ.col5.1),
-         lty = c(NA, pub.lty, templ.lty), 
-         pch = c(19, NA, NA), lwd = c(1, 2, 3))#, text.width = textwidths)
-  legend("bottomright", 
-         legend = c("Published Data - fat", "Published Model - fat", "Template Version - fat"),
-         xpd = TRUE, inset = c(0.03, 0), bty = "n",
-         col = c(pub.col, pub.col5.2, templ.col5.2),
-         lty = c(NA, "dotdash", templ.lty),
-         pch = c(17, NA, NA), lwd = c(1, 2, 3))#, text.width = textwidths)
-  
-  if (!is.null(img.name)){
-    dev.off()
-  }
-  
+         lty=c(NA,pub.lty,templ.lty), col = c(pub.col,pub.col5.1,templ.col5.1),
+         pch = c(19,NA,NA), lwd = c(1,2,3))
+  legend("bottomright", xpd = TRUE, inset = c(0.12, 0), bty = "n", 
+         legend = c("Published Data - fat", "Published Model - fat", 
+                    "Template Version - fat"),
+         lty=c(NA,"dotdash",templ.lty), col=c(pub.col,pub.col5.2,templ.col5.2),
+         pch = c(17,NA,NA), lwd = c(1,2,3))
+  if (!is.null(img.name)) dev.off()
 }
 
-# Figure 3: IV dose for rats
 styrene.fig3 <- function(img.name = NULL){
   # Figure 3: IV infusion exposure for rats
   
   # Load Data
-  datafig3 = read.csv(file = "Data/Data_Styrene/fig3.csv", header = TRUE)
+  dfig3 = read.csv(file = "Data/Data_Styrene/fig3.csv", header = TRUE)
   
   out <- PBPK_run(model.param.filename = "Styrene_template_parameters_Model.xlsx",
                   model.param.sheetname = "rat", 
                   exposure.param.filename = "Styrene_template_parameters_Exposure.xlsx", 
                   exposure.param.sheetname = "iv_Fig3",
-                  data.times = c(0,datafig3$time_conc_sim))
+                  data.time = c(0,dfig3$time_conc_sim))
   
   # Calculate error - percent difference between template and published sims
   print("Percent differences are calculated relative to the scale of the digitized figure.")
-  v=match(datafig3$time_conc_sim,out$time.hr)
-  err = max(abs(perc.diff.scale(model = out$C_ven[v], 
-                          data = datafig3$conc_sim, fig.scale = 100)), na.rm = TRUE)
-  print(paste0("Max. percent difference: ", err))
-  
-  err.time = abs(perc.diff.scale(model = out$C_ven[v], data = datafig3$conc_sim,
-                                 fig.scale = 100))
-  plot(out$time.hr[v], err.time, xlab = "Time (hr)", ylab = "Percent Difference")
+  v = match(dfig3$time_conc_sim,out$time)
+  err = perc.diff(out$C_ven[v], dfig3$conc_sim, sc=100)
+  print(paste("Max. percent difference:", max(err) ))
+  plot(out$time[v], err, xlab = "Time (hr)", ylab = "Percent Difference")
   
   # Recreate Figure 3 from Ramsey and Andersen (1984)
-  if (!is.null(img.name)){
-    tiff(img.name, res=300, height=6, width=7, units="in")
-  }
-  
-  plot(1,1, type ="n", xlab = "Time (hr)", ylab = "Concentration (mg/L)", 
-       xlim = c(0,3.6), ylim = c(0.01,100), log = "y")
-  lines(out$time.hr[v], out$C_ven[v], col = templ.col, lty = templ.lty, lwd = 3)
-  lines(datafig3$time_conc_sim, datafig3$conc_sim, 
-        col = pub.col, lty = pub.lty, lwd = 2)
-  points(datafig3$time_conc_data, datafig3$conc_data,
-         col = pub.col, pch = 19)
-  legend("topright", 
+  if (!is.null(img.name)) tiff(img.name, res=300, height=6, width=7, units="in")
+  par(mar=c(3,3,1,1), mgp=c(1.5,0.5,0))
+  plot(dfig3$time_conc_data, dfig3$conc_data, col=pub.col, pch=19, xlim=c(0,3.2), 
+       xaxp=c(0,3.2,8), xlab="Time (hr)", ylab="Concentration (mg/L)",
+       ylim=c(0.03,30), yaxp=c(0.03,30,2), log="y")
+  lines(out$time, out$C_ven, col = templ.col, lty = templ.lty, lwd = 3)
+  lines(dfig3$time_conc_sim, dfig3$conc_sim, col=pub.col, lty=pub.lty, lwd=2)
+  legend("topright", pch = c(19, NA, NA),
          legend = c("Published Data", "Published Model", "Template Version"), 
-         col = c(pub.col, pub.col, templ.col), lty = c(NA, pub.lty, templ.lty),
-         pch = c(19, NA, NA))
-  
-  if (!is.null(img.name)){
-    dev.off()
-  }
-  
+         col = c(pub.col,pub.col,templ.col), lty = c(NA,pub.lty,templ.lty))
+  if (!is.null(img.name)) dev.off()
 }
