@@ -1,7 +1,7 @@
 # Styrene PBPK model by Ramsey and Andersen (1984)
 # Model template simulations 
 # Author: Amanda Bernstein, US EPA (ORISE), January 2023
-# Revisions for use with MCSimMod: Pau Schlosser, December 2025
+# Revisions for use with MCSimMod: Paul Schlosser, December 2025
 
 # Set working directory to the directory containing this file.
 script.dir = dirname(sys.frame(1)$ofile)
