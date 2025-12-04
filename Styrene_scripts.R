@@ -57,15 +57,16 @@ styrene.fig2 <- function(img.name = NULL){
   }
   
   # Calculate error - percent difference between template and published sims
-  print("Percent differences are calculated relative to the scale of the digitized figures.")
+  print("Percent differences are calculated relative to the scale of the digitized figures.",
+        quote=FALSE)
   print(paste("Max. percent difference for 80 ppm:", 
-              max.diff.scale(C_art[match(tb_80,times),1], cb_80, sc=100) ))
+              max.diff.scale(C_art[match(tb_80,times),1], cb_80, sc=100) ), quote=FALSE)
   print(paste("Max. percent difference for 200 ppm:", 
-              max.diff.scale(C_art[match(tb_200,times),2], cb_200, sc=1000) ))
+              max.diff.scale(C_art[match(tb_200,times),2], cb_200, sc=1000) ), quote=FALSE)
   print(paste("Max. percent difference for 600 ppm:", 
-              max.diff.scale(C_art[match(tb_600,times),3], cb_600, sc=10000) ))
+              max.diff.scale(C_art[match(tb_600,times),3], cb_600, sc=10000) ), quote=FALSE)
   print(paste("Max. percent difference for 1200 ppm:", 
-              max.diff.scale(C_art[match(tb_1200,times),4], cb_1200, sc=10000) ))
+              max.diff.scale(C_art[match(tb_1200,times),4], cb_1200, sc=10000) ), quote=FALSE)
  
   # Recreate Figure 2 from Ramsey and Andersen (1984)
   if (!is.null(img.name)) tiff(img.name, res=300, height=6, width=7, units="in")
@@ -118,16 +119,14 @@ styrene.fig2 <- function(img.name = NULL){
   par(mfrow = c(1,1), oma = c(0, 0, 0, 0), mar = c(0, 0, 0, 0), new = TRUE)
   plot(0, 0, type ="n", bty ="n", xaxt ="n", yaxt ="n")
   
-  legend("bottomleft", xpd = TRUE, inset = c(0.12, 0), bty = "n", 
-         legend = c("Published Data - blood", "Published Model - blood",
-                    "Template Version - blood"),
-         lty=c(NA,pub.lty,templ.lty), col = c(pub.col,pub.col5.1,templ.col5.1),
-         pch = c(19,NA,NA), lwd = c(1,2,3))
-  legend("bottomright", xpd = TRUE, inset = c(0.12, 0), bty = "n", 
-         legend = c("Published Data - fat", "Published Model - fat", 
+  legend("bottomleft", c("Published Data - blood", "Published Model - blood",
+                    "Template Version - blood"), 
+         xpd = TRUE, inset = c(0.12, 0), bty = "n", lty=c(NA,pub.lty,templ.lty), 
+         col=c(pub.col,pub.col5.1,templ.col5.1), pch=c(19,NA,NA), lwd=c(1,2,3))
+  legend("bottomright", c("Published Data - fat", "Published Model - fat", 
                     "Template Version - fat"),
-         lty=c(NA,"dotdash",templ.lty), col=c(pub.col,pub.col5.2,templ.col5.2),
-         pch = c(17,NA,NA), lwd = c(1,2,3))
+         xpd=TRUE, inset=c(0.12, 0), bty = "n", lty=c(NA,"dotdash",templ.lty), 
+         col=c(pub.col,pub.col5.2,templ.col5.2), pch = c(17,NA,NA), lwd=c(1,2,3))
   if (!is.null(img.name)) dev.off()
 }
 
@@ -144,10 +143,11 @@ styrene.fig3 <- function(img.name = NULL){
                   data.time = c(0,dfig3$time_conc_sim))
   
   # Calculate error - percent difference between template and published sims
-  print("Percent differences are calculated relative to the scale of the digitized figure.")
+  print("Percent differences are calculated relative to the scale of the digitized figure.",
+        quote=FALSE)
   v = match(dfig3$time_conc_sim,out$time)
   err = perc.diff(out$C_ven[v], dfig3$conc_sim, sc=100)
-  print(paste("Max. percent difference:", max(err) ))
+  print(paste("Max. percent difference:", max(err) ), quote=FALSE)
   plot(out$time[v], err, xlab = "Time (hr)", ylab = "Percent Difference")
   
   # Recreate Figure 3 from Ramsey and Andersen (1984)
