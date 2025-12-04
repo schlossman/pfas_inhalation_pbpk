@@ -64,12 +64,13 @@ methanol.IRIS.FigB3 <- function(){
   
   # Calculate error - percent difference between template and IRIS sims
   print(paste("Max. percent difference for 100 mg/kg (to two decimal places):",
-              max.diff(C_ven[match(sim100$time,out$time),1], (sim100$C_ven-bgd))))
+              max.diff(C_ven[match(sim100$time,out$time),1], (sim100$C_ven-bgd))),
+        quote=FALSE)
   
   # Create Figure B3 from IRIS tox report
   # Note, simulations are plotted minus background concentration of 3 mg/L
   par(mar=c(3,3,1,1), mgp=c(1.5,0.5,0))
-  plot(data100$time, data100$C_ven-bgd, col="black", log="y", ylim=c(1,10000), xlim=c(0,50),
+  plot(data100$time, data100$C_ven, col="black", log="y", ylim=c(1,10000), xlim=c(0,50),
        xlab="Time (hr)", ylab="Concentration of MeOH in Venous Blood (mg/L)")
   lines(out$time, C_ven[,1], col="black", lwd=2)
   lines(sim100$time, sim100$C_ven-bgd, col="red", lty="dashed", lwd=2)
@@ -118,15 +119,15 @@ methanol.IRIS.FigB4A <- function(img.name = NULL){
   # Calculate error - percent difference between template and IRIS sims
   v=match(simB4A$time,out$time)
   print(paste("Max. percent difference for 1000 ppm (to two decimal places):",
-              max.diff(C_ven[v,1], simB4A$C_ven1k)))
+              max.diff(C_ven[v,1], simB4A$C_ven1k)), quote=FALSE)
   print(paste("Max. percent difference for 5000 ppm (to two decimal places):",
-              max.diff(C_ven[v,2], simB4A$C_ven5k)))
+              max.diff(C_ven[v,2], simB4A$C_ven5k)), quote=FALSE)
   print(paste("Max. percent difference for 10000 ppm (to two decimal places):",
-              max.diff(C_ven[v,3], simB4A$C_ven10k)))
+              max.diff(C_ven[v,3], simB4A$C_ven10k)), quote=FALSE)
   print(paste("Max. percent difference for 15000 ppm (to two decimal places):",
-              max.diff(C_ven[v,4], simB4A$C_ven15k)))
+              max.diff(C_ven[v,4], simB4A$C_ven15k)), quote=FALSE)
   print(paste("Max. percent difference for 20000 ppm (to two decimal places):",
-              max.diff(C_ven[v,5], simB4A$C_ven20k)))
+              max.diff(C_ven[v,5], simB4A$C_ven20k)), quote=FALSE)
  
   # Create Figure B4, panel A from IRIS tox report
   if (!is.null(img.name)) tiff(img.name, res=300, height=5, width=6, units="in")
@@ -169,7 +170,7 @@ methanol.IRIS.FigB4B <- function(img.name = NULL){
   }
   
   # Calculate error - percent difference between template and IRIS sims
-  print(paste0("Max. percent difference: ", max.diff(res, simB4B$C_ven)))
+  print(paste0("Max. percent difference: ", max.diff(res, simB4B$C_ven)), quote=FALSE)
   
   # Create Figure B4, panel B from IRIS tox report 
   if (!is.null(img.name)) tiff(img.name, res=300, height=5, width=6, units="in")
@@ -228,19 +229,19 @@ methanol.IRIS.FigB5 <- function(img.name = NULL){
   # Discard first data point at time = 0, C_ven = 0
   temp_res <- out2500_2gi$C_ven[match(simB5_2500$Time_2gi, out2500_2gi$time)]
   print(paste("Max. percent difference for 2500 mg/kg (2 gi comp.):", 
-              max.diff(temp_res, simB5_2500$C_ven_2gi)))
+              max.diff(temp_res, simB5_2500$C_ven_2gi)), quote=FALSE)
   
   temp_res <- out2500_1gi$C_ven[match(simB5_2500$Time_1gi, out2500_1gi$time)]
   print(paste("Max. percent difference for 2500 mg/kg (1 gi comp.):", 
-              max.diff(temp_res, simB5_2500$C_ven_1gi)))
+              max.diff(temp_res, simB5_2500$C_ven_1gi)), quote=FALSE)
   
   temp_res <- out100_2gi$C_ven[match(simB5_100$Time_2gi, out100_2gi$time)]
   print(paste("Max. percent difference for 100 mg/kg (2 gi comp.):", 
-              max.diff(temp_res, simB5_100$C_ven_2gi)))
+              max.diff(temp_res, simB5_100$C_ven_2gi)), quote=FALSE)
   
   temp_res <- out100_1gi$C_ven[match(simB5_100$Time_1gi, out100_1gi$time)]
   print(paste("Max. percent difference for 100 mg/kg (1 gi comp.):", 
-              max.diff(temp_res, simB5_100$C_ven_1gi)))
+              max.diff(temp_res, simB5_100$C_ven_1gi)), quote=FALSE)
   
   # Create Figure B5, panel A from IRIS tox report 
   if (!is.null(img.name)) tiff(img.name, res=300, height=4, width=7, units="in")
@@ -360,11 +361,11 @@ methanol.IRIS.FigB7 <- function(img.name = NULL){
   
   # Calculate error - percent difference between template and IRIS sims
   print(paste("Max. percent difference for 231 ppm:", 
-              max.diff(out231$C_urine, simB7_231$C_urine)))
+              max.diff(out231$C_urine, simB7_231$C_urine)), quote=FALSE)
   print(paste("Max. percent difference for 157 ppm:", 
-              max.diff(out157$C_urine, simB8_conc$C_urine_157)))
+              max.diff(out157$C_urine, simB8_conc$C_urine_157)), quote=FALSE)
   print(paste("Max. percent difference for 78 ppm:", 
-              max.diff(out78$C_urine, simB8_conc$C_urine_78)))
+              max.diff(out78$C_urine, simB8_conc$C_urine_78)), quote=FALSE)
   
   # Figure B7
   if (!is.null(img.name))  tiff(img.name, res=300, height=6, width=6, units="in")
@@ -504,7 +505,7 @@ methanol.IRIS.FigB11 <- function(img.name = NULL){
                   data.times = sim$Time)
   
   # Calculate error - percent difference between template and IRIS sims
-  print(paste("Max. percent difference:", max.diff(out$C_ven,sim$C_ven)))
+  print(paste("Max. percent difference:", max.diff(out$C_ven,sim$C_ven)), quote=FALSE)
   
   # Figure B11
   if (!is.null(img.name)) tiff(img.name, res=300, height=5, width=6, units="in")
@@ -537,7 +538,7 @@ methanol.IRIS.FigB13 <- function(img.name = NULL){
                   data.times = sim$Time)
   
   # Calculate error - percent difference between template and IRIS sims
-  print(paste("Max. percent difference: ", max.diff(out$C_ven, sim$C_ven)))
+  print(paste("Max. percent difference: ", max.diff(out$C_ven, sim$C_ven)), quote=FALSE)
   
   # Create Figure B13 from IRIS tox report
   if (!is.null(img.name)) tiff(img.name, res=300, height=5, width=6, units="in")
