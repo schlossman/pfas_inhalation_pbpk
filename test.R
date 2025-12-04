@@ -51,8 +51,7 @@ model$updateY0()
 
 print(paste("Venous blood conc from endogenous exposure:",eoparms$C_ven_SS,"mg/L"))
 
-parms["R_0bgli"] = compute_endog_rate(c_data=eoparms$C_ven_SS, model=model, 
-                                      Forc=Forc, rtol=rtol, atol=atol, method=method)
+compute_endog_rate(model, c_data=eoparms$C_ven_SS, rtol, atol, method)
 print(paste("Calculated Endogenous Production Rate:", parms["R_0bgli"]))
 
 model$updateParms(parms) # Update model$parms based on parms from above.
