@@ -66,8 +66,8 @@ Yoon.table5.VC <- function(){
   }
   # Append table of % differences between current t5 and saved version (s5),
   # rounded to three significant figures:
-  noquote("Replication of Yoon et al. (2007) Table 5 values (first 4 rows) for VC")
-  noquote("and % differences between previously saved calculations (last 4 rows).")
+  print("Replication of Yoon et al. (2007) Table 5 values (first 4 rows) for VC",quote=FALSE)
+  print("and % differences between previously saved calculations (last 4 rows).",quote=FALSE)
   s5[,3:8] <- round(100*(s5[,3:8] - t5[,3:8])/(s5[,3:8]+1e-18), 3)
   t5[,3:8] <- signif(t5[,3:8],3)
   return(rbind(t5,s5))
@@ -107,8 +107,8 @@ Yoon.table5.TCE <- function(){
   }
   # Append table of % differences between current t5 and saved version (s5),
   # rounded to three significant figuress:
-  noquote("Replication of Yoon et al. (2007) Table 5 values (first 4 rows) for TCE")
-  noquote("and % differences between previously saved calculations (last 4 rows).")
+  print("Replication of Yoon et al. (2007) Table 5 values (first 4 rows) for TCE",quote=FALSE)
+  print("and % differences between previously saved calculations (last 4 rows).",quote=FALSE)
   s5[,3:8] <- round(100*(s5[,3:8] - t5[,3:8])/(s5[,3:8]+1e-18), 3)
   t5[,3:8] <- signif(t5[,3:8],3)
   return(rbind(t5,s5))
@@ -148,8 +148,8 @@ Yoon.table5.CCl4 <- function(){
   }
   # Append table of % differences between current t5 and saved version (s5),
   # rounded to three significant figuress:
-  noquote("Replication of Yoon et al. (2007) Table 5 values (first 4 rows) for CCl4")
-  noquote("and % differences between previously saved calculations (last 4 rows).")
+  print("Replication of Yoon et al. (2007) Table 5 values (first 4 rows) for CCl4",quote=FALSE)
+  print("and % differences between previously saved calculations (last 4 rows).",quote=FALSE)
   s5[,3:8] <- round(100*(s5[,3:8] - t5[,3:8])/(s5[,3:8]+1e-18), 3)
   t5[,3:8] <- signif(t5[,3:8],3)
   return(rbind(t5,s5))
