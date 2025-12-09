@@ -186,14 +186,22 @@ PFDA.Kim.FemaleRat <- function(img.name = NULL){
                   exposure.param.sheetname = "FKimRecreateBW", 
                   data.times=c(seq(0,15,0.01),16:(150*24)))
 
+<<<<<<< HEAD
   #out.inc <- PBPK_run(param.filename = "PFAS_template_parameters_PFDA.xlsx", 
   #                   sheetname = "FKimRecreateBW", mName = "PFAS_template_GI")
+=======
+  #out.inc <- PBPK_run(param.filename = "PFAS_template_parameters_PFDA.xlsx", sheetname = "FKimRecreateBW", mName = "PFAS_template_GI")
+>>>>>>> eea5c3297ba48aca19e21e2c156ce8ae6bcbf9c0
   plot.Kim(out, out.inc=NULL, chem="PFDA", sex="female", dose=1.0, img.name=img.name)
   
   print(paste("Maximum mass balance error (Template version with Corrected Flow):",
               max(abs(out$A_bal))), quote=FALSE)
+<<<<<<< HEAD
   #print(paste("Maximum mass balance error (Template version with Published Flow):", 
   #     max(abs(out.inc$A_bal))))
+=======
+  #print(paste("Maximum mass balance error (Template version with Published Flow):", max(abs(out.inc$A_bal))))
+>>>>>>> eea5c3297ba48aca19e21e2c156ce8ae6bcbf9c0
   
   #Accuracy calculation - based on "incorrect" model
   # Pdata <- load_PlasmaData(chem = "PFDA", species = "rat", sex = "female", 
