@@ -25,7 +25,7 @@ In the PBPK_template.model file, please follow the following guidelines:
 
 3. State variables
     a. Naming convention for amounts: A_[description] where description is a short description of the compartment or where the amount is being measured.
-        i. Compartments are noted using a 2-3 letter abbreviation in lower case.  Typically, use the first 2-3 letters of the compartment. Eg. liver:li, lung: lu, gi tract:gi, filtrate:fil
+        i. Compartments are noted using a 2-3 letter abbreviation in lower case.  Typically, use the first 2-3 letters of the compartment. Eg. liver: li, lung: lu, gi tract:gi, filtrate: fil
 
 
 Note, “outputs” must be defined before they are used so all outputs should be calculated prior to state variables.
