@@ -115,7 +115,7 @@ plot.CF.Take.inh <- function(){
 }
 
 chloroform.Take.oral.and.inh <- function(){
-  # Creates manuscript Figure 9
+  # Reproduces results in manuscript Figure 9
    times = seq(from=0, to=600, by=0.1)/60 # Simulation times (min --> h)
   # Import data 
   take_data = read_excel("Data/Data_CF/Take_data.xlsx", sheet = "oral_inhalation")
@@ -194,7 +194,7 @@ Take.oral.and.inhal.diffs <- function(){
                   exposure.param.filename = "CF_template_parameters_Exposure.xlsx", 
                   exposure.param.sheetname = "Take_oral_inh",
                   data.times=acslx$time/60)
-  print("The following values are calculated from the combined oral and 
-        inhalation route models.", quote=FALSE)
+  print("The following values are calculated from the combined oral and inhalation route models.", 
+        quote=FALSE)
   res.diff.calc(out,acslx)
   }
