@@ -9,45 +9,27 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## run_template_model.R
 
-This R source code file includes functions to run the PBPK model template. It 
-requires the R libraries **readxl** (for importing parameter values) and 
-**deSolve** (for methods of solving ordinary differential equations) and the 
-R file **RMCSim.R**. The included functions are:
+This R source code file includes functions to run the PBPK model template. 
+It requires the R libraries **readxl** for importing parameter values and 
+**MCSimMod** for creating, loading and working with model objects. When 
+**MCSimMod** is installed, it will install **deSolve** (for methods of solving 
+ordinary differential equations) and any other dependent packages. 
 
+Each time this script is sourced (which occurs when any of the provided 
+chemical-specific scripts are sourced) it will create and load two identical 
+model objects "model" and "template" from the PBPK_template.model model 
+specification file using the **MCSimMod** functions createModel() and $loadModel(). 
 
-### **unload.model**
+The first time that "model" and "template" are loaded, $loadModel() will also 
+translate the .model file to C source code and compile the C code to create a 
+dynamic link library (DLL) file (Windows) or a shared object (SO) file (Unix). 
 
-##### Description 
+Translation and compilation *should* occur again if, but only if, the model
+specification file (PBPK_template.model) is revised. See the documentation for 
+**MCSimMod*** if you attempt to revise PBPK_template.model.
 
-Unloads the model .dll file `mName`, if it is currently loaded.
+The functions included in run_template_model.R are:
 
-##### Usage
-
-`unload.model(mName)`
-
-Argument | Definition 
-:--|:-------
-mName | String containing the name of the model 
-
-
-### **PBPK_compile**
-
-##### Description 
-
-Uses the `compile_model(mName)` function in **RMCSim.R** to translate the
-  MCSim .model file given in `mName` into the C language (".c" file) and 
-  compile, creating a C object code (.o) file and a dynamic linked library
-  (".dll") file. It also creates an R script ("_inits.R") containing several R
-  functions used for initializing model states and parameters.
-
-##### Usage
-
-`PBPK_compile(mName = "PBPK_template")`
-
-Argument | Definition 
-:--|:-------
-mName | String containing the name of the model 
-  
 
 ### **PBPK_run**
 
@@ -57,109 +39,108 @@ Runs a simulation using the compiled MCSim model `mName` using model and exposur
 
 ##### Usage
 
-`PBPK_run(mName = "PBPK_template", model.param.filename = NULL,`
-    `model.param.sheetname = NULL, exposure.param.filename = NULL,`
-    `exposure.param.sheetname = NULL, data.times = NULL, adj.parms = NULL,`
-    `BW.table = NULL, Freef.table = NULL, water.dose.frac = NULL,` 
-    `load.and.unload = TRUE, rtol=1e-8,atol=1e-8, cust_expo = NULL)`
+`PBPK_run(model = template, load = TRUE,`    
+`model.param.filename = NULL, model.param.sheetname = NULL,`  
+`exposure.param.filename = NULL, exposure.param.sheetname = NULL,`  
+`data.times = NULL, adj.parms = NULL, BW.table = NULL,`  
+`Freef.table = NULL, water.dose.frac = NULL, cust_expo = NULL,`  
+`rtol = 1e-8, atol = 1e-8, method = "lsoda", reportendog = FALSE)`
 
 Argument | Definition 
 :--|:-------
- mName | String containing the name of the model 
- model.param.filename | String containing the name of the Excel file containing the model parameter values
- model.param.sheetname  | String containing the name of the sheet within the Excel file containing the model parameter values
- exposure.param.filename | String containing the name of the Excel file containing the exposure parameter values  
- exposure.param.sheetname  | String containing the name of the sheet within the Excel file containing the exposure parameter values
- data.times | Vector of time points (h) at which to return the simulation output 
- adj.parms | Vector of .model parameters to be adjusted (overwrites the values from the input parameter spreadsheets) Note, parameters must appear as parameters in the .model file and have units as defined in the .model file (same as the units of the output data frame).
- BW.table | List with two elements: a vector of BWs (in kg) called BW and a vector of corresponding times (in h) called times 
- Freef.table | List with two elements: a vector of values for the free fraction of chemical in plasma called Freef and a vector of corresponding times (in h) called times
- water.dose.frac | Vector listing the fraction of dose ingested at each dosing event for bolus water dosing (should sum to 1)
- load.and.unload | A boolean. When true, the model will automatically be loaded at 
-the start of this function and unloaded at the end of this function. Set to FALSE 
-to stop automatically loading and unloading the model (in which case the model 
-must be loaded prior to running this function).
- cust_expo | A data frame that allows the user to set up a custom exposure pattern. 
-Note, this exposure pattern is applied in addition to any exposures defined in  
-the exposure parameter spreadsheet. It is var, time, value, and method. See the 
-documentation for the R package deSolve for more information.
-
+  model | MCSimMod model object to use
+  load | Boolean. When true, the model will be loaded at the start of this function, which should reset all parameter values to default values. Set to FALSE to skip loading the model (in which case the model must be loaded prior to running this function)
+model.param.filename | String containing the name of the Excel file containing the model parameter values, which must be placed in the "Inputs" folder of the model package
+ model.param.sheetname  | Optional string containing the name of the sheet within the Excel file containing the model parameter values (needed if there are multiple sheets)
+ exposure.param.filename | String containing the name of the Excel file containing the exposure parameter values, which must be placed in the "Inputs" folder of the model package
+ exposure.param.sheetname  | Optional string containing the name of the sheet within the Excel file containing the exposure parameter values (needed if there are multiple sheets)
+ data.times | Optional vector of time points (h) at which to return the simulation output. If not provided, simulation outputs are returned in 0.25-hour increments from time = 0 to the number of simulation days (converted to hours) specified in exposure.param.filename / exposure.param.sheetname
+ adj.parms | Optional vector of .model parameters to be adjusted (overwrites the values from the input parameter spreadsheets). Note, parameters must either appear as parameters in the .model file or as exposure parameter inputs in exposure.param.filename / exposure.param.sheetname and have units as set in the exposure.param.filename / exposure.param.sheetname and model.param.filename / model.param.sheetname (in rows with column A values of M.units, V.units and T.units)
+ BW.table | Optional list to input time-dependent BW values with two elements: a vector of BWs (in kg) called "BW" and a vector of corresponding times (in h) called "times". Linear interpolation is used to set BW based on this list
+ Freef.table | Optional list to input time-dependent free fraction in plasma with two elements: a vector of values for the free fraction of chemical in plasma called "Freef" and a vector of corresponding times (in h) called "times". Linear interpolation is used to set BW based on this list
+ water.dose.frac | Optional vector of length n.doses_water (set in exposure.param.filename / exposure.param.sheetname) listing the fraction of dose ingested at each dosing event for bolus water dosing. The fractions *must* be non-negative and sum to 1. The daily dose times will be evenly spaced between t.first.dose_water and t.final.dose_water (set in exposure.param.filename / exposure.param.sheetname). To set water dosing at an uneven time interval, argument cust_expo must be used.
+ cust_expo | An optional data frame that allows the user to set up a custom exposure pattern. Note: this exposure pattern is applied in addition to any exposures defined in the exposure parameter spreadsheet. cust_expo must set var, time, value, and method for each exposure event. For example, to alternately set R_oral to 1 or 0 at times 1:4 (h), one would use cust_expo = data.frame(var="R_oral", time=1:4, value=c(1,0), method="rep"). See the documentation for the R package deSolve for more information
+ rtol | Numeric value for relative integration tolerance for the ODE solver (default = 1e-8)
+ atol | Numeric value for absolute integration tolerance for the ODE solver (default = 1e-8) 
+ method | ODE solver method (default = "lsoda"). See the documentation for the R package deSolve for more information.
+ reportendog | Boolean (default = FALSE). Set to TRUE to have (estimated) endogenous production levels reported to the screen
 
 ##### Value
 
 This function returns a data frame containing all state variables and output
-  variables from a simulation of the model `mName`. Values are given using 
-  standard units of (mg, L, h) except BW_out (kg).
- 
-
-### **find_SS_PBPK_noDose**
+  variables from a simulation of the model. Values are given using standard 
+  units of (mg, L, h) except BW_out (kg).
+  
+  
+### **update_vals**
 
 ##### Description 
 
-For use with background rates of production, finds the steady state values of all model state variables.
+Function to replace values in list p with corresponding named values in list np 
+and to identify any named values in np that are *not* in p, possibly executing 
+stop() given such a mismatch.
 
 ##### Usage
- 
-`find_SS_PBPK_noDose(mName, parms, Forc)`
+
+`update_vals(p, np, stopifwarned = TRUE)`
 
 Argument | Definition 
 :--|:-------
- mName | String containing the name of the model 
-parms | Vector of model parameter values
-Forc | Data frame containing values for model time-dependent "input parameters": BW and free fraction in plasma (using the initial values for each as the value during the entire simulation)
+ p | Parameter list to be updated
+ np | List of replacement parameter values (names(np) should be in names(p))
+ stopifwarned | Boolean to execute a stop() if any names(np) are not in names(p)
 
 ##### Value
 
-This function returns a vector containing the steady state values for each state variable in the model mName.
+Elements of np for which the name is not in p are reported as a warning but otherwise ignored (when stopifwarned = FALSE).
+
+Returns a list with any values of p updated using any corresponding elements of np. 
 
 
 ### **compute_endog_rate**
 
 ##### Description 
 
-For use with background rates of production, finds the background rate of production (assumed to be in the liver) necessary to have concentration c_data in venous blood at steady state.
+For use with background rates of production. Given a nonzero target venous blood concentration, `c_data`, the function finds the background rate of production (assumed to be in the liver), R_0bgli, necessary to have concentration `c_data` in venous blood at steady state. Otherwise the function uses the value of R_0bgli in the model parms vector to calculate the steady-state values of the model variables and sets those initial states in the model Y0 vector accordingly.
 
 ##### Usage
  
-`compute_endog_rate(c_data, mName, parms, Forc)`
+`compute_endog_rate(model, c_data = 0, rtol = 1e-12, atol = 1e-12, method = "lsoda")`
 
 Argument | Definition 
 :--|:-------
-c_data | Numeric value of the background concentration in venous blood
-mName | String containing the name of the model 
-parms | Vector of model parameter values
-Forc | Data frame containing values for model time-dependent "input parameters": BW and free fraction in plasma (using the initial values for each as the value during the entire simulation)
+  model | MCSimMod model object to use
+  c_data | Numeric value of the background concentration in venous blood. If c_data = 0 then R_0bgi is not revised.
+ rtol | Numeric value for relative integration tolerance for the ODE solver
+ atol | Numeric value for absolute integration tolerance for the ODE solver 
+ method | ODE solver method. See the documentation for the R package deSolve for more information.
 
 ##### Value
 
-This function returns a numeric value equal to the rate of background production of chemical in the liver necessary to obtain the specified steady state concentration of chemical in the venous blood.
+This function does not return anything, but resets R_0bgi in the model parms vector to a value such that the specified steady state concentration of chemical in the venous blood equals `c_data` if `c_data` > 0. In any case the function resets initial values for state variables the in model Y0 vector to those occurring at steady-state given the (estimated or pre-set) value of R_0bgli, given no exogenous exposure, and BW and the Free plasma fraction at their initial values.
 
 
 ### **endog_cost_fun**
 
 ##### Description 
 
-For use with background rates of production, this is the cost function for the optimization used to determine the background rate of production (assumed to be in the liver) necessary to have concentration c_data in venous blood at steady state.
+This is the cost function for the optimization used to determine the background rate of production (assumed to be in the liver) necessary to have concentration `c_data` (set in compute_endog_rate()) in venous blood at steady state.
 
 ##### Usage
  
-`endog_cost_fun(theta, mName, t_data, c_data,`
-`    Y0, parms, Forc, epsilon = 1.0e-12)`
+`endog_cost_fun(theta, model, t_data, c_data, Forc)`
 
 Argument | Definition 
 :--|:-------
 theta | Numeric value for the parameter to be optimized, i.e. the background rate of production in the liver
-mName | String containing the name of the model 
-t_data | Numeric value for the time at which to compute the steady state values
-c_data | Numeric value of the background concentration in venous blood
-Y0 | Vector of the initial states in the model
-parms | Vector of model parameter values
-Forc | Data frame containing values for model time-dependent "input parameters": BW and free fraction in plasma (using the initial values for each as the value during the entire simulation)
-epsilon | Numeric value used in the calculation of the relative error between the desired concentration in venous blood and the current value returned by the model at steady state
+  model | MCSimMod model object to use
+  t_data | Numeric value for the time at which to compute the steady state values
+  c_data | Numeric value of the target background concentration in venous blood
+  Forc | Data frame containing values for model time-dependent "input parameters": BW and free fraction in plasma should be held constant at their initial values during the endogenous rate simulations; this Forc is created and passed by compute_endog_rate()
 
 ##### Value
 
-This function returns the sum of the squared relative errors between the desired concentration in venous blood and the current value returned by the model at steady state.
+Returns the squared relative error between the desired concentration in venous blood (`c_data`) and the current value returned for the `model` at time `t_data` (presumed to be at steady state).
 
 
 ### **load.model.parameters**
@@ -174,31 +155,32 @@ Reads the model input parameters from the specified Excel spreadsheet and proces
 
 Argument | Definition 
 :--|:-------
-filename | String containing the name of the Excel file containing the model parameter values
-sheetname | String containing the name of the sheet within the Excel file containing the model parameter values
+filename | String containing the name of the Excel file containing the model parameter values. This file *must* be in the "Inputs" folder
+sheetname | Optional string containing the name of the sheet within the Excel file containing the model parameter values (needed if there are multiple sheets)
 parms | Vector of model parameter values
 
 ##### Value
 
 This function returns a list containing model parameter information:
-
+              
 Parameter | Description
 :--|:-------
-model_parms | Vector of model parameter values used in the .model file (parms)
-sim.days | Number of simulation days
-C.units | *This value is currently unused.* String containing the units to be used to plot concentrations of chemical
-A.units | *This value is currently unused.* String containing the units to be used to plot amounts of chemical
-species | *This value is currently unused.* String containing the name of the species being modeled
-sex | *This value is currently unused.* String containing the sex of the population being modeled
-chem | *This value is currently unused.* String containing the name of the chemical being modeled
-Free_constant | Character indicating whether the free fraction of chemical in plasma is constant. "Y" indicates yes, and "N" indicates no
+parms | Vector of model parameter values updated with values in `filename` / `sheetname`
+C.units | String containing the units of chemical concentration*
+A.units | String containing the units of chemical amount*
+species | String containing the name of the species being modeled*
+sex | String containing the sex of the population being modeled*
+chem | String containing the name of the chemical being modeled*
+Free_constant | Character indicating if the free fraction of chemical in plasma is constant ("Y") or not ("N")
+
+*These character strings returned by load.model.parameters() are currently not used by or returned from PBPK_run() but are available for use as plotting labels, etc.
 
 
 ### **load.exposure.parameters**
 
 ##### Description 
 
-Reads the exposure input parameters from the specified Excel spreadsheet and processes them for use in the PBPK_run function. The spreadsheets are assumed to be in a folder called "Inputs" in the current working directory.
+Reads the exposure input parameters from the specified Excel spreadsheet and processes them for use in the PBPK_run function. The spreadsheets *must* be in a folder called "Inputs" in the current working directory.
 
 ##### Usage
  
@@ -206,88 +188,120 @@ Reads the exposure input parameters from the specified Excel spreadsheet and pro
 
 Argument | Definition 
 :--|:-------
-filename | String containing the name of the Excel file containing the exposure parameter values
-sheetname | String containing the name of the sheet within the Excel file containing the exposure parameter values
+filename | String containing the name of the Excel file containing the exposure parameter values. This file *must* be in the "Inputs" folder
+sheetname | Optional string containing the name of the sheet within the Excel file containing the exposure parameter values (needed if there are multiple sheets)
 parms | Vector of model parameter values
 
 ##### Value
 
-This function returns a list containing exposure parameter information:
+This function returns a list containing two elements, parms (vector of model 
+parameter values updated with values in `filename` / `sheetname`) and other_parms, which is itself a list:
 
-Parameter | Description
+other_parms element | Description
 :--|:-------
-model_parms | Vector of model parameter values used in the .model file (parms)
-sim.days | Number of simulation days
-water.dose | Character indicating whether water dosing (periodic bolus oral dosing) is included. "Y" indicates yes, and "N" indicates no.
-inhal.dose | Character indicating whether inhalation dosing is included. "Y" indicates yes, and "N" indicates no
-exp.parms | Vector of exposure parameter values used to create exposure events for a given simulation
-water.equal | String indicating whether dose amounts for water dosing are equal during the day or unequal
-inh.stop.time | Time that a single inhalation exposure ends
-T_iv_infuse | Time that an iv infusion ends
-C_ven_SS | Concentration of chemical in venous blood at steady state
-BW_constant | Character indicating whether the body weight is constant. "Y" indicates yes, and "N" indicates no
+  sim.days | Number of simulation days
+  R_oral | Continuous oral dose rate
+  water.dose | Character indicating whether water dosing (periodic bolus oral dosing) is included ("Y") or not ("N")
+  inhal.dose | Character indicating whether inhalation dosing is included ("Y") or not ("N")
+  exp.parms | List of exposure parameter values used to create exposure events for a given simulation. Elements are only added to this list when needed. Possible elements are "inh.stop.time", "time.exp.starts", "length.exp.day", "N.days.exp", "n.doses_water", "t.first.dose_water", "t.final.dose_water", and "dose_water"
+  T_oral_rate | Time when continuous oral dosing ends
+  water.equal | String indicating whether dose amounts for water dosing are equal during the day or unequal
+  T_iv_infuse | Time that an iv infusion ends
+  C_ven_SS | Concentration of chemical in venous blood at steady state due to background or endogenous exposure
+  BW_constant | Character indicating whether the body weight is constant ("Y") or not ("N")
 
 
 ### **perc.diff**
 
 ##### Description 
 
-Computes the percent error between a model and data relative to the data values, and returns a value of zero if the difference between the values is less than the specified tolerance:
-\[ E = 100*\left(\frac{\text{data}-\text{model}}{\text{data}}\right) \]
+Computes the aboute percent error between `model` and `data` relative to the values of `data` if sc = NULL or relative to `sc` if it is not NULL:
+\[ E = 100*\left|\frac{\text{data}-\text{model}}{\text{norm}}\right|.\]
+If `sc` = NULL then norm = `data` + delta, where delta is the minimum absolute *non-zero* value of `data` divided by 10^6. 
+
+This avoids divide-by-zero errors with a negligible impact on the calculated differences.
 
 ##### Usage
  
-`perc.diff(model, data, tol=1e-6)`
+`perc.diff(model, data, sc = NULL)`
 
 Argument | Definition 
 :--|:-------
-model | Value of the model
-data | Value of the data
-tol | Value of the error tolerance. If the difference between the model and the data is less than tol, a value of zero is returned
+model | Value (vector) from the model
+data | Value (vector) of the data, which could be results from an alternate model.
+sc | If NULL the differences are normalized to values in data as described above. `sc` may also be a scalar or appropriate length vector (e.g., same length as `model` and `data`) to which the difference between `data` and `model` is normalized.
 
 ##### Value
 
-This function returns the value of the percent error calculation.
+Returns a vector of the same length as `model` and `data` of the absolute percent differences for each corresponding pair of `model` and `data` values, normalized to `data` or `sc`.
 
 
-### **perc.diff.scale**
+### **max.diff**
 
 ##### Description 
 
-Computes the percent error between a model and data relative to the value of fig.scale:
-\[ E = 100*\left(\frac{\text{data}-\text{model}}{\text{fig.scale}}\right) \]
+Computes the maximum absolute percent difference between `model` and `data`, rounded to rd significant figures:
+\[ E = 100*\max\left(\left|\frac{\text{data}-\text{model}}{\text{data}}\right|\right) \]
+It uses perc.diff() to avoid divide-by-zero errors.
 
 ##### Usage
  
-`perc.diff.scale(model, data, fig.scale)`
+`max.diff(model, data, rd = 3)`
 
 Argument | Definition 
 :--|:-------
-model | Value of the model
-data | Value of the data
-fig.scale | Value to compute the difference between model and data relative to
+model | Value (vector) of results from the model
+data | Value (vector) of data, which could be results from an alternate model
+rd | Number of significant figures to round the result
 
 ##### Value
 
-This function returns the value of the percent error calculation.
+Returns the value of the maximum absolute percent error calculation. 
 
 
-### **perc.diff.calc**
+### **max.diff.scale**
+
+##### Description 
+
+Computes the maximum percent error between a model and data relative to a provided scale:
+\[ E = 100*\max\left(\left|\frac{\text{data}-\text{model}}{\text{scale}}\right|\right) \]
+It uses perc.diff() to avoid divide-by-zero errors.
+
+##### Usage
+ 
+`max.diff.scale(model, data, rd = 3, scale = 1)`
+
+Argument | Definition 
+:--|:-------
+model | Value (vector) of results from the model
+data | Value (vector) of the data, which could be results from an alternate model
+rd | Number of significant figures to round the result
+scale | A scalar or appropriate length vector (e.g., same length as `model` and `data`) to which the difference between `data` and `model` is normalized
+
+##### Value
+
+Returns the maximum absolute percent error between `model` and `data`, relative to `scale`, rounded to `rd` significant figures. 
+
+
+### **max.diff.calc**
 
 ##### Description 
 
 Computes the percent error between a model and data relative to the average value of the model and the data:
-\[ E = 100*\left(\frac{\text{data}-\text{model}}{\text{(model + data)/2)}}\right) \]
+\[ E = 100*\max\left(\left|\frac{\text{data}-\text{model}}{\text{(data + model)/2)}}\right|\right) \]
+It uses perc.diff() to avoid divide-by-zero errors.
 
 ##### Usage
  
-`perc.diff.calc(model, data)`
+`max.diff.calc(model, data, rd = 3)`
 
 Argument | Definition 
 :--|:-------
-model | Value of the model
-data | Value of the data
+model | Value (vector) of results from the model
+data | Value (vector) of data, which could be from an alternate model
+rd | Number of significant figures to round the result
 
 ##### Value
 
-This function returns the value of the percent error calculation.
+Returns the maximum absolute percent error between `model` and `data`, relative to their average, rounded to `rd` significant figures. 
+
