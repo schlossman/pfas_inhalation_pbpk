@@ -22,13 +22,7 @@ source("run_template_model.R")
 
 #vcol = c("#482576FF", "#25848EFF", "#7AD151FF") # viridis(3, begin = 0.1, end = 0.8)
 vcol3 = c("#440154FF", "#2A788EFF", "#7AD151FF") # viridis(3, begin = 0.0, end = 0.8)
-
-pub.col <- vcol3[2]
-templ.col <- vcol3[3]
-
-pub.lty <- "dashed"
-templ.lty <- "solid"
-
+pub.col <- vcol3[2]; templ.col <- vcol3[3]; pub.lty <- "dashed"; templ.lty <- "solid"
 
 DCM.IRIS.Table5.1 <- function(){
   # Creates manuscript Table S-1
@@ -81,7 +75,8 @@ DCM.IRIS.Table5.1 <- function(){
     }
   }
   table5.1[(1:nd)+nd,] <- s5.1
-
+  com=print("Rows 6-10 below are relative error between current results and previous PBPK Model Template.",quote=FALSE)
+  com
   # for (ii in daily.intake.f){ # Results for females
   #   out <- PBPK_run(model.param.filename = "DCM_template_parameters_Model.xlsx",
   #                   model.param.sheetname = "IRIS_model_rat_VarC", 
@@ -126,9 +121,7 @@ DCM.IRIS.Table5.11 <- function(){
     last <- length(out$A_met_1st)
     lastweek <- which(out$time.days==(out$time.days[last]-7))
     table5.11$met.dose.body[ii] <- (out$A_met_1st[last] - out$A_met_1st[lastweek])/(7*out$BW_out[1])
-    if (ii>1) {
-      s5.11$met.dose.body[ii] = s5.11$met.dose.body[ii]/table5.11$met.dose.body[ii] -1
-      }
+    if (ii>1) s5.11$met.dose.body[ii] =s5.11$met.dose.body[ii]/table5.11$met.dose.body[ii] -1
   }
   table5.11[(1:nd)+nd,] <- s5.11
   return(table5.11)
@@ -157,18 +150,16 @@ DCM.IRIS.FigC3 <- function(img.name = NULL){
   }
   
   # Calculate error - percent difference between template and IRIS sims
-  print("Max percent difference for chamber concentration")
-  err1 = max(abs(perc.diff(model = out.all[,1], data = dataC3$C1)))
-  print(paste0("Max. percent difference for 100 ppm: ", err1))
-  
-  err5 = max(abs(perc.diff(model = out.all[,2], data = dataC3$C5)))
-  print(paste0("Max. percent difference for 500 ppm: ", err5))
-  
-  err10 = max(abs(perc.diff(model = out.all[,3], data = dataC3$C10)))
-  print(paste0("Max. percent difference for 1000 ppm: ", err10))
-  
-  err30 = max(abs(perc.diff(model = out.all[,4], data = dataC3$C30)))
-  print(paste0("Max. percent difference for 3000 ppm: ", err30))
+  print("Max percent difference for chamber concentration (rounded to 3 significant figures)",
+        quote=FALSE)
+  print(paste0("Max. percent difference for 100 ppm: ", 
+               max.diff(model=out.all[,1], data=dataC3$C1)), quote=FALSE)
+  print(paste0("Max. percent difference for 500 ppm: ", 
+               max.diff(model=out.all[,2], data=dataC3$C5)), quote=FALSE)
+  print(paste0("Max. percent difference for 1000 ppm: ", 
+               max.diff(model=out.all[,3], data=dataC3$C10)), quote=FALSE)
+  print(paste0("Max. percent difference for 3000 ppm: ", 
+               max.diff(model=out.all[,4], data=dataC3$C30)), quote=FALSE)
   
   if (!is.null(img.name)){
     tiff(img.name, res=300, height=5, width=6, units="in")
