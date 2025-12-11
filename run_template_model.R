@@ -37,7 +37,7 @@ model <- template <- createModel("PBPK_template")
 model$loadModel()
 template$loadModel()
 
-update_vals <- function(p, np, stopifwarned=FALSE){
+update_vals <- function(p, np, stopifwarned=TRUE){
   # Function expecting two named lists, p (existing parameter/values), np (new 
   # parameter values) and optional 'stopifwarned'. 
   # Elements of p are replaced by elements of np that have corresponding names;
@@ -305,8 +305,9 @@ PBPK_run <- function(model=template, load=TRUE,
 
 compute_endog_rate <- function(model, c_data=0, rtol=1e-12, atol=1e-12, 
                                method="lsoda"){
-# Function to compute endogenous rate of production in 'model' needed to have 
-# concentration 'c_data' in venous blood at steady state given events df 'Forc'
+  # Function to compute endogenous rate of production in 'model' needed to have 
+  # concentration 'c_data' in venous blood at steady state with no exogenous
+  # exposure and BW and Free plasma fractions constant at their initial values.
   
   dparms = c("iv_dose","oral_dose_init","Conc_init","Conc_ambient")
   sparms <- model$parms[dparms] # Save current set of model dosing parameters
@@ -389,15 +390,13 @@ compute_endog_rate <- function(model, c_data=0, rtol=1e-12, atol=1e-12,
   model$Y0[upnames] <- out_SS2[upnames]  # Assign these out_SS2 to model$Y0[upnames]
 }
 
-endog_cost_fun <- function(theta, model, t_data, c_data, Forc, epsilon=1.0e-12){
+endog_cost_fun <- function(theta, model, t_data, c_data, Forc){
 # Cost function used when computing the endogenous rate of production
   model$parms["R_0bgli"] = theta[1]  # Set test value for endogenous production.
     # No other parameters and no Y0 values depend on R_0bgli.
-  out = model$runModel(t_data, forcings=Forc)#, rtol=1e-8, atol=1e-8, 
-                       #method="lsoda") # Obtain model concentrations
-  # Compute sum of squared relative errors
-  SSE = sum(((c_data - tail(out[,"C_ven"],1)) / (c_data + epsilon))**2)
-  return(SSE)
+  out = model$runModel(t_data, forcings=Forc) # Obtain model concentrations
+  # Return sum of squared relative error
+  return((1 - tail(out[,"C_ven"],1)/c_data)**2)
 }
 
 load.model.parameters <- function(filename, sheetname = NULL, parms){
@@ -573,21 +572,21 @@ perc.diff <- function(model, data, sc=NULL){
   # If no sc is given (default = NULL), then 
   # sc = data + (smallest nonzero data value)/1e6 (to avoid divide-by-zero). 
   if (is.null(sc)) sc = data + min(abs(data[data!=0]))/1e6
-  return(abs(100*(data-model)/sc))
+  return(100*(abs(data-model)/sc))
 }
 
-max.diff <- function(model, data, rd=3){
+max.diff <- function(model, data, rd = 3){
   # Compute maximum absolute percent difference between model and data values
   # relative to data, rounded to rd significant figures (default rd = 3).
   return(round(max(perc.diff(model, data)), rd))
 }
 # 
-max.diff.scale <- function(model, data, rd=3, sc=1){
+max.diff.scale <- function(model, data, rd=3, scale=1){
   # Compute maximum absolute percent difference between model and data values
   # relative to a provided scale, sc (default = 1), rounded to rd significant
   # figures (default rd = 3). sc can be a scalar, e.g., the scale of a
   # digitized figure, or a vector of length of the data. 
-  return(round(max(perc.diff(model, data, sc=sc)), rd))
+  return(round(max(perc.diff(model, data, sc=scale)), rd))
 }
 # 
 max.diff.calc <- function(model, data, rd=3){
