@@ -17,9 +17,10 @@ Revision for MCSimMod: Paul Schlosser, US EPA 10/17/2025
 
 3)	(Optional, but recommended.) Install Rstudio (https://www.rstudio.com). Rstudio includes a code editor and debugging, visualization and Git versioning tools.
 
-4)	From R or Rstudio, install the packages "MCSimMod" and "readxl": 
+4)	From R or Rstudio, install the packages "MCSimMod"* and "readxl": 
     a) If using command line R, use the "install.packages" method. 
     b) If using RGui, choose "Install package(s)..." from the "Packages" menu, then follow the instructions. 
-    c) If using Rstudio, choose "Install packages..." from the "Tools" menu, then follow the instructions. (The package, "deSolve" (which provides methods for integrating ordinary differential equations), and any other packages on which MCSimMod or readxl depend should be automatically installed in the process, if they have not been previously installed).
+    c) If using Rstudio, choose "Install packages..." from the "Tools" menu, then follow the instructions. 
+    *The package, "deSolve", which provides methods for integrating ordinary differential equations, and any other packages on which MCSimMod or readxl depend should be automatically installed in the process, if they have not been previously installed.
     
 **NOTE*: installing Rtools adds a directory for the gcc that it uses to the system PATH environment variable. Users who already have another gcc installed, in particular for the legacy ACSLX software, may then find that compiling C code in that other software fails. Changing the ordering of the directories listed in the PATH environment variable such that the appropriate directory is listed *first* (depending on which of these the user plans to run) should resolve any such problem. After Rtools installation, the relevant directories are listed in the *system* PATH environment variable (not the user-specific PATH environment variable), and administrative privileges are required to modify this PATH variable. However, one can set the user PATH as needed without administrative privileges and this will take precedence over the system PATH (when logged in as that user).
