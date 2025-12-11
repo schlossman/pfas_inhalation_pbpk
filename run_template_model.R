@@ -190,7 +190,7 @@ PBPK_run <- function(model=template, load=TRUE,
       tz_daily = seq.int(exp_parms[["t.first.dose_water"]], 
                          exp_parms[["t.final.dose_water"]], length.out=nz)
       # Initialize vector of all water dose times and of all water dose amounts.
-      tt=floor((0:(days*nz-1))/nz)*24 # Times at start of each day, repeated
+      tt=floor((0:(eoparms$sim.days*nz-1))/nz)*24 # Times at start of each day, repeated
       tz = floor((0:(eoparms$sim.days*nz-1))/nz)*24 + tz_daily
       dz = BW_fnc(tz)*water.dose.frac
       
