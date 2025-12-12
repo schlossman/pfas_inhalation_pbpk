@@ -14,7 +14,7 @@ PFOA_BW_v_age <- function(age0=NULL, BW0=NULL, sex="male", BWdata="NTP_BW_SD.csv
                           dur=21){
   # If specified, age0 and dur[ation] should be in days, BW0 in kg.
   if (is.null(age0) & is.null(BW0)){
-    print("Either age0 or BW0 must be provided as an input.")
+    print.noquote("Either age0 or BW0 must be provided as an input.")
     return(NULL)
   }
   d = read.csv(paste("Data/",BWdata,sep=""))
@@ -53,10 +53,9 @@ PFOA.Loccisano.Kemper <- function(img.name = NULL, case=list(), colr=TRUE,
 
   plot.Kemper.Loccisano(out, route="gavage", dose=25.0, sex="Male", 
                         img.name=img.name, colr=colr, detail=case$simtitle)
-  print(paste("Maximum mass balance error:", max(abs(out$A_bal))))
+  print.noquote(paste("Maximum mass balance error:", max(abs(out$A_bal))))
   par(mar=c(3,2.4,0.75,0.2), mgp=c(1.5,0.5,0))
-  time1=out$time
-  fil=out$C_fil
+  time1=out$time; fil=out$C_fil
   
   # Accuracy calculation vs. digitized simulation results from Loccisano
   data.loc <- "Data/Digitized_Data_PFOA/"
@@ -127,21 +126,15 @@ plot.Kemper.Loccisano <- function(out, route=NULL, dose=NULL, sex=NULL, detail=N
   }
   
   # Set colors and line-types for results from Loccisano and PBPK Template:
-  paper.col <- vcol[2]
-  inc.templ.col <- vcol[1]
-  cor.templ.col <- vcol[3]
-  
-  paper.lty <- "dashed"
-  inc.templ.lty <- "dotted"
-  cor.templ.lty <- "solid"
+  paper.col <- vcol[2]; inc.templ.col <- vcol[1]; cor.templ.col <- vcol[3]
+  paper.lty <- "dashed"; inc.templ.lty <- "dotted"; cor.templ.lty <- "solid"
   
   # Plotting labels:
   ylabel = expression(paste("PFOA concentration (",mu,"g/mL)"))
   xlabel = "Time (h)"
+  # Create tiff if file name is not null:
+  if (!is.null(img.name)) tiff(img.name, res=300, height=4, width=7, units="in")
   
-  if (!is.null(img.name)){ # Create tiff if file name is not null.
-    tiff(img.name, res=300, height=4, width=7, units="in")
-  }
   # Set plot frame parameters:
   opar <- par(no.readonly = TRUE)
   par(mfrow=c(1,2), mar=c(3,2.4,1.75,0.2), oma=c(1.5,0.1,0.1,0.1), mgp=c(1.3,0.5,0))
@@ -238,6 +231,3 @@ plot.Kemper.Loccisano <- function(out, route=NULL, dose=NULL, sex=NULL, detail=N
   if (!is.null(img.name)){ dev.off() }
   par(opar)
 }
-
-
-
