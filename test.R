@@ -1,3 +1,7 @@
+# test script to demonstrate ODE solver errors causing GI-related state
+# variables to go negative when running steady-state simulations with zero
+# exposure (but non-zero endogenous production).
+
 # Set working directory to the directory containing this file.
 script.dir = dirname(sys.frame(1)$ofile)
 setwd(script.dir)
@@ -42,21 +46,19 @@ Freef = c(1,1)*parms["F_free"]
 Forc <- list(cbind(times=BW_times, BW_in=BW_out),
              cbind(times=Freef_times, Free_in=Freef))
 
-print(paste("Oral dose is:",parms[["oral_dose_init"]],"mg/kg"))
+print.noquote(paste("Oral dose is:",parms[["oral_dose_init"]],"mg/kg"))
 
 df_dose=NULL
 
 model$updateParms(parms) # Update model$parms based on parms from above.
 model$updateY0()
 
-print(paste("Venous blood conc from endogenous exposure:",eoparms$C_ven_SS,"mg/L"))
+print.noquote(paste("Venous blood conc from endogenous exposure:",eoparms$C_ven_SS,"mg/L"))
 
 compute_endog_rate(model, c_data=eoparms$C_ven_SS, rtol, atol, method)
-print(paste("Calculated Endogenous Production Rate:", parms["R_0bgli"]))
+print.noquote(paste("Calculated Endogenous Production Rate:", model$parms["R_0bgli"]))
 
-model$updateParms(parms) # Update model$parms based on parms from above.
-model$updateY0() # Update model$Y0 based on Y0 from above.
-print(paste("Initial amount in GI lumen:",model$Y0[["A_glumen"]]))
+print.noquote(paste("Initial amount in GI lumen:",model$Y0[["A_glumen"]]))
 
 # Then, if there is an endogenous rate (may have been a set input), adjust 
 # the initial conditions to include what is at steady state
@@ -75,7 +77,7 @@ print(paste("Initial amount in GI lumen:",model$Y0[["A_glumen"]]))
   model$updateParms(p)
   model$updateY0()
 ### Check update of oral dose
-  print(paste("Initial amount in GI lumen is now:",model$Y0[["A_glumen"]]))
+  print.noquote(paste("Initial amount in GI lumen is now:",model$Y0[["A_glumen"]]))
   t_data = c(0,2400); n=length(t_data)  # initial time value, 100 days in hours
   Forc <- list(cbind(times=c(0, max(t_data)), BW_in=c(1,1)*p["BW"]),
                cbind(times=c(0, max(t_data)), Free_in=c(1,1)*p["F_free"]))
@@ -89,6 +91,5 @@ print(paste("Initial amount in GI lumen:",model$Y0[["A_glumen"]]))
     delta_SS <- abs(out_SS1$C_ven/out_SS2$C_ven -1)
   }
   
-  print("Simulation resuts (final timepoint) that are negative:")
-  print(out_SS2[out_SS2<0])
-  
+  print.noquote("Simulation resuts (final timepoint) that are negative:")
+  print.noquote(out_SS2[out_SS2<0])
