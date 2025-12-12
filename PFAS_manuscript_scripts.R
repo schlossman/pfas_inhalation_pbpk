@@ -35,9 +35,9 @@ PFHxS.Kim.FemaleRat <- function(img.name = NULL){
   plot.Kim(out, out.inc=NULL, chem="PFHxS", sex="female", dose=4.0, img.name=img.name, 
            Pylims=list(plasma=c(0.1,1e5),liver=c(15,30000),kidney=c(1e-4,2e4),urine=c(0,440)))
   
-  print(paste("Maximum mass balance error (Template version with Corrected Flow):",
-              max(abs(out$A_bal))), quote=FALSE)
-  #print(paste("Maximum mass balance error (Template version with Published Flow):", max(abs(out.inc$A_bal))))
+  print.noquote(paste("Maximum mass balance error (Template version with Corrected Flow):",
+              max(abs(out$A_bal))))
+  #print.noquote(paste("Maximum mass balance error (Template version with Published Flow):", max(abs(out.inc$A_bal))))
   
   #Accuracy calculation - based on "incorrect" model
   # Pdata <- load_PlasmaData(chem = "PFHxS", species = "rat", sex = "female", dose.type = "oral", dose = 4.0)
@@ -74,9 +74,9 @@ PFHxS.Kim.MaleRat <- function(img.name = NULL){
   plot.Kim(out, out.inc=NULL, chem="PFHxS", sex="male", dose=10.0, img.name=img.name, 
            Pylims=list(plasma=c(0.1,1.5e5),liver=c(20,50000),kidney=c(1e-4,2e4),urine=c(0,520)))
   
-  print(paste("Maximum mass balance error (Template version with Corrected Flow):",
-              max(abs(out$A_bal))), quote=FALSE)
-  #print(paste("Maximum mass balance error (Template version with Published Flow):", max(abs(out.inc$A_bal))))
+  print.noquote(paste("Maximum mass balance error (Template version with Corrected Flow):",
+              max(abs(out$A_bal))))
+  #print.noquote(paste("Maximum mass balance error (Template version with Published Flow):", max(abs(out.inc$A_bal))))
   
   #Accuracy calculation - based on "incorrect" model
   # Pdata <- load_PlasmaData(chem = "PFHxS", species = "rat", sex = "male", dose.type = "oral", dose = 10.0)
@@ -113,9 +113,9 @@ PFNA.Kim.FemaleRat <- function(img.name = NULL){
   plot.Kim(out, out.inc=NULL, chem="PFNA", sex="female", dose=3.0, img.name=img.name, 
            Pylims=list(plasma=c(1e-4,3e1),liver=c(1e-4,20),kidney=c(1e-6,6),urine=c(0,400)))
   
-  print(paste("Maximum mass balance error (Template version with Corrected Flow):",
-              max(abs(out$A_bal))), quote=FALSE)
-  #print(paste("Maximum mass balance error (Template version with Published Flow):", max(abs(out.inc$A_bal))))
+  print.noquote(paste("Maximum mass balance error (Template version with Corrected Flow):",
+              max(abs(out$A_bal))))
+  #print.noquote(paste("Maximum mass balance error (Template version with Published Flow):", max(abs(out.inc$A_bal))))
   
   #Accuracy calculation - based on "incorrect" model
   # Pdata <- load_PlasmaData(chem = "PFNA", species = "rat", sex = "female", dose.type = "oral", dose = 3.0)
@@ -151,9 +151,9 @@ PFNA.Kim.MaleRat <- function(img.name = NULL){
   #out.inc <- PBPK_run(param.filename = "PFAS_template_parameters_PFNA.xlsx", sheetname = "MKimRecreateBW", mName = "PFAS_template_GI")
   plot.Kim(out, out.inc=NULL, chem="PFNA", sex="male", dose=3, img.name=img.name)
 
-  print(paste("Maximum mass balance error (Template version with Corrected Flow):",
-              max(abs(out$A_bal))), quote=FALSE)
-  #print(paste("Maximum mass balance error (Template version with Published Flow):", max(abs(out.inc$A_bal))))
+  print.noquote(paste("Maximum mass balance error (Template version with Corrected Flow):",
+              max(abs(out$A_bal))))
+  #print.noquote(paste("Maximum mass balance error (Template version with Published Flow):", max(abs(out.inc$A_bal))))
   
   #Accuracy calculation - based on "incorrect" model
   # Pdata <- load_PlasmaData(chem = "PFNA", species = "rat", sex = "male", dose.type = "oral", dose = 3.0)
@@ -186,23 +186,15 @@ PFDA.Kim.FemaleRat <- function(img.name = NULL){
                   exposure.param.sheetname = "FKimRecreateBW", 
                   data.times=c(seq(0,15,0.01),16:(150*24)))
 
-<<<<<<< HEAD
   #out.inc <- PBPK_run(param.filename = "PFAS_template_parameters_PFDA.xlsx", 
   #                   sheetname = "FKimRecreateBW", mName = "PFAS_template_GI")
-=======
-  #out.inc <- PBPK_run(param.filename = "PFAS_template_parameters_PFDA.xlsx", sheetname = "FKimRecreateBW", mName = "PFAS_template_GI")
->>>>>>> eea5c3297ba48aca19e21e2c156ce8ae6bcbf9c0
   plot.Kim(out, out.inc=NULL, chem="PFDA", sex="female", dose=1.0, img.name=img.name)
   
-  print(paste("Maximum mass balance error (Template version with Corrected Flow):",
-              max(abs(out$A_bal))), quote=FALSE)
-<<<<<<< HEAD
-  #print(paste("Maximum mass balance error (Template version with Published Flow):", 
+  print.noquote.noquote(paste("Maximum mass balance error (Template version with Corrected Flow):",
+              max(abs(out$A_bal))))
+  #print.noquote(paste("Maximum mass balance error (Template version with Published Flow):", 
   #     max(abs(out.inc$A_bal))))
-=======
-  #print(paste("Maximum mass balance error (Template version with Published Flow):", max(abs(out.inc$A_bal))))
->>>>>>> eea5c3297ba48aca19e21e2c156ce8ae6bcbf9c0
-  
+
   #Accuracy calculation - based on "incorrect" model
   # Pdata <- load_PlasmaData(chem = "PFDA", species = "rat", sex = "female", 
   #                         dose.type = "oral", dose = 1.0)
@@ -233,7 +225,7 @@ PFOA.Loccisano.KudoLow <- function(img.name=NULL){
                   data.times = 0:30/10)
   
   plot.Kudo.Loccisano(out, dose="low", img.name=img.name)
-  print(paste("Maximum mass balance error:", max(abs(out$A_bal))), quote=FALSE)
+  print.noquote(paste("Maximum mass balance error:", max(abs(out$A_bal))))
   
   #Accuracy calculation
   Pdata <- read.csv("Data/Digitized_Data_PFOA/Data_Fig8_Kudo_lowPlasma.csv", 
@@ -261,7 +253,7 @@ PFOA.Loccisano.KudoHigh <- function(img.name = NULL){
                   exposure.param.sheetname = "MKudo2BW")
   
   plot.Kudo.Loccisano(out, dose="high")#, img.name = "Figure9_LoccKudoHigh.tif")
-  print(paste("Maximum mass balance error:", max(abs(out$A_bal))), quote=FALSE)
+  print.noquote(paste("Maximum mass balance error:", max(abs(out$A_bal))))
   
   #Accuracy calculation
   Pdata <- read.csv("Data/Digitized_Data_PFOA/Data_Fig8_Kudo_highPlasma.csv", 
@@ -311,7 +303,7 @@ PFOA.Loccisano.Kemper <- function(img.name = NULL, match_orig=FALSE){
                   atol=1e-14, BW.table = BW.table, adj.parms=adj.parms)
   
   plot.Kemper.Loccisano(out, dose.type="oral", dose=25.0, sex="male", img.name=img.name)
-  print(paste("Maximum mass balance error:", max(abs(out$A_bal))), quote=FALSE)
+  print.noquote(paste("Maximum mass balance error:", max(abs(out$A_bal))))
 
   #Accuracy calculation
   Pdata <- read.csv("Data/Digitized_Data_PFOA/Data_Fig9_Kemper_OraldosePlasma.csv", 
@@ -353,7 +345,7 @@ PFOS.Loccisano.3M <- function(img.name = NULL){
                   BW.table = list(times=BW.t,BW=BW), Freef.table = Freef.table)
   
   plot.3M.Loccisano(out, sex = "male")#, img.name = "Figure11_Locc3MOral2.tif")
-  print(paste("Maximum mass balance error:", max(abs(out$A_bal))), quote=FALSE)
+  print.noquote(paste("Maximum mass balance error:", max(abs(out$A_bal))))
   
   #Accuracy calculation
   Pdata <- read.csv("Data/Digitized_Data_PFOS/Fig4_3M_OralPlasma.csv", header=TRUE, sep=",")
