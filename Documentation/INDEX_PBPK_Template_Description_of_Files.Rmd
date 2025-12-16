@@ -67,8 +67,8 @@ estimation. These are not used for the pfas inhalation analysis conducted in
 
 #### PFOA_Loccisano_Kemper.R
 
-Functions to run Loccisano et al. (2012) PFOA PBPK model simulations of Kemper 
-et al. oral PK data and plot results.
+Defines functions to run Loccisano et al. (2012) PFOA PBPK model simulations of  
+Kemper et al. oral PK data and plot results.
 
 #### Data
 

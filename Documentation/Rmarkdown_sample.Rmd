@@ -26,7 +26,7 @@ The code is also run, so the variables $x$, $y$, and $z$ now exist and are assig
 
 ### Including Plots
 
-Or you can supress the call of the code and just display the outputs:
+You can suppress the call of the code and just display the outputs:
 
 ```{r, echo=FALSE}
 plot(x,y,type = "l", col="red")
