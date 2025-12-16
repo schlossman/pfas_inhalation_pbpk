@@ -1,0 +1,13 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.C
+*.c
+*.so
+*.dll
+*.md5
+*.o
+*.tif
+*.tiff
+*.html
